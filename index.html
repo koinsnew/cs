@@ -174,6 +174,7 @@
   .cbtn{flex:1;border-radius:13px;padding:13px 0;font-weight:800;font-size:14.5px;font-family:inherit;cursor:pointer;border:none}
   .cbtn.cancel{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
   .cbtn.danger{background:linear-gradient(135deg,#e85656,#d83b3b);color:#fff;box-shadow:0 8px 18px rgba(226,77,77,.35)}
+  .cbtn.brand{background:var(--grad);color:#fff;box-shadow:0 8px 18px rgba(74,84,225,.35)}
   .cbtn:active{transform:translateY(1px)}
   /* 헤리티지 프로 로그인 스플래시 */
   .hloader{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
@@ -290,14 +291,21 @@
       <div class="field"><label>생년월일</label><input id="f-birth" type="date"></div>
       <div class="field"><label>상령일 <span class="hint">· 생년월일 기준 자동 계산 (생일 +6개월) · 수정 불가</span></label><input id="f-renew" class="locked" readonly placeholder="생년월일 입력 시 자동"></div>
       <div class="field"><label>마지막 접촉일 <span class="hint">· 6개월 지나면 자동으로 장기미접촉 표시</span></label><input id="f-lastcontact" type="date"></div>
-      <div class="field"><label>주소</label>
-        <div class="addr-row"><input id="f-addr" readonly placeholder="주소 검색을 눌러주세요" onclick="openPostcode()"><button type="button" class="addr-btn" onclick="openPostcode()">검색</button></div>
+      <div class="field"><label>자택 주소</label>
+        <div class="addr-row"><input id="f-addr" readonly placeholder="주소 검색을 눌러주세요" onclick="openPostcode('home')"><button type="button" class="addr-btn" onclick="openPostcode('home')">검색</button></div>
       </div>
-      <div class="field"><label>상세주소</label><input id="f-addr2" placeholder="동/호수 등 상세주소"></div>
+      <div class="field"><label>자택 상세주소</label><input id="f-addr2" placeholder="동/호수 등 상세주소"></div>
+      <div class="field"><label>직장 주소</label>
+        <div class="addr-row"><input id="f-workaddr" readonly placeholder="주소 검색을 눌러주세요" onclick="openPostcode('work')"><button type="button" class="addr-btn" onclick="openPostcode('work')">검색</button></div>
+      </div>
+      <div class="field"><label>직장 상세주소</label><input id="f-workaddr2" placeholder="층/호수 등 상세주소"></div>
+      <div class="field"><label>상호명</label><input id="f-company" placeholder="예: ○○물산 / ○○의원"></div>
+      <div class="field"><label>직급</label><input id="f-position" placeholder="예: 대표 / 과장 / 원장"></div>
       <div class="field"><label>가족관계 <span class="hint">· ＋로 여러 명 추가 (중복 가능)</span></label>
         <div id="fam-list"></div>
         <button type="button" class="add-fam" onclick="addFamRow()">＋ 가족 추가</button>
       </div>
+      <div class="field" id="fld-memo"><label>고객 메모 <span class="hint">· 상담 내용·니즈·특이사항 자유롭게</span></label><textarea id="f-memo" rows="8" style="min-height:180px" placeholder="이 고객에 대한 메모를 넉넉하게 남겨보세요"></textarea></div>
     </div>
     <div id="grp-contract">
       <div class="section-title" style="margin:18px 4px 6px">📄 계약 정보</div>
@@ -306,7 +314,6 @@
       <div class="field" id="fld-status"><label>상태</label>
         <select id="f-status"><option>신규가망</option><option>관리중</option><option>상령임박</option><option>장기미접촉</option></select>
       </div>
-      <div class="field" id="fld-memo"><label>메모</label><textarea id="f-memo" rows="7" style="min-height:150px" placeholder="상담 내용, 니즈, 특이사항 등 자유롭게 입력"></textarea></div>
     </div>
     <button class="save-btn" id="save-btn">저장</button>
     <button class="save-btn" id="del-btn" style="background:#fdecec;color:#c33;box-shadow:none;display:none">이 계약 삭제</button>
@@ -330,6 +337,16 @@
     <div class="ctitle" id="confirm-title">삭제할까요?</div>
     <div class="cmsg" id="confirm-msg"></div>
     <div class="crow"><button class="cbtn cancel" id="confirm-no">아니요</button><button class="cbtn danger" id="confirm-yes">네, 삭제</button></div>
+  </div>
+</div>
+
+<!-- 길찾기 자택/직장 선택창 -->
+<div class="cscrim" id="nav-scrim">
+  <div class="cbox">
+    <div class="cico" style="background:#e2f6f2;color:#0a7c6e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
+    <div class="ctitle">어디로 안내할까요?</div>
+    <div class="cmsg" id="nav-name"></div>
+    <div class="crow"><button class="cbtn cancel" onclick="navPick('home')">🏠 자택</button><button class="cbtn brand" onclick="navPick('work')">🏢 직장</button></div>
   </div>
 </div>
 
@@ -390,11 +407,14 @@ function normStatus(s){return s==="갱신임박"?"상령임박":(s||"관리중")
 
 function val(raw,keys){for(var i=0;i<keys.length;i++){for(var h in raw){if(h.replace(/\s/g,"").indexOf(keys[i])>-1&&raw[h]!=="")return raw[h];}}return ""}
 function mapRow(raw){
+  var ex=function(k){return raw[k]!==undefined&&raw[k]!==null?raw[k]:""};
   return {_row:raw._row,name:val(raw,["이름","성명","고객명"]),phone:String(val(raw,["연락처","전화","휴대폰"])||""),
-    addr:val(raw,["주소"]),birth:val(raw,["생년월일","생일"]),product:val(raw,["가입상품","상품"]),
+    addr:ex("주소")||val(raw,["자택주소"]),birth:val(raw,["생년월일","생일"]),product:val(raw,["가입상품","상품"]),
     fee:val(raw,["월보험료","보험료"]),renew:val(raw,["상령일","갱신일","만기"]),status:normStatus(val(raw,["상태"])),
-    family:val(raw,["가족관계","가족"]),last:val(raw,["최근접촉","최근"]),memo:val(raw,["메모","비고"]),
-    lat:parseFloat(val(raw,["위도"]))||null,lng:parseFloat(val(raw,["경도"]))||null};
+    family:val(raw,["가족관계","가족"]),last:val(raw,["최근접촉","최근"]),memo:ex("메모")||val(raw,["비고"]),
+    workAddr:ex("직장주소"),company:ex("상호명")||val(raw,["상호","회사"]),position:ex("직급"),
+    lat:parseFloat(ex("위도"))||null,lng:parseFloat(ex("경도"))||null,
+    workLat:parseFloat(ex("직장위도"))||null,workLng:parseFloat(ex("직장경도"))||null};
 }
 
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
@@ -414,12 +434,15 @@ function buildCustomers(rows){
   var groups={},order=[];
   contracts.forEach(function(c){
     var key=c.name.trim();   // 한 FC 탭 안에서는 이름 = 한 고객 (연락처가 빈 계약 행도 같은 고객으로 묶임)
-    if(!groups[key]){groups[key]={key:key,name:c.name,phone:c.phone,addr:c.addr,birth:c.birth,family:c.family,renew:c.renew,last:c.last||"",lat:c.lat,lng:c.lng,contracts:[]};order.push(key)}
+    if(!groups[key]){groups[key]={key:key,name:c.name,phone:c.phone,addr:c.addr,birth:c.birth,family:c.family,renew:c.renew,last:c.last||"",memo:c.memo||"",workAddr:c.workAddr||"",company:c.company||"",position:c.position||"",lat:c.lat,lng:c.lng,workLat:c.workLat,workLng:c.workLng,contracts:[]};order.push(key)}
     var g=groups[key];
     if(!g.phone&&c.phone)g.phone=c.phone;if(!g.addr&&c.addr)g.addr=c.addr;if(!g.birth&&c.birth)g.birth=c.birth;
     if(!g.family&&c.family)g.family=c.family;if(!g.renew&&c.renew)g.renew=c.renew;
+    if(!g.memo&&c.memo)g.memo=c.memo;
+    if(!g.workAddr&&c.workAddr)g.workAddr=c.workAddr;if(!g.company&&c.company)g.company=c.company;if(!g.position&&c.position)g.position=c.position;
     if(c.last){var _cl=new Date(c.last);if(!g.last||(!isNaN(_cl)&&_cl>new Date(g.last)))g.last=c.last;}
     if((!g.lat||!g.lng)&&c.lat&&c.lng){g.lat=c.lat;g.lng=c.lng}
+    if((!g.workLat||!g.workLng)&&c.workLat&&c.workLng){g.workLat=c.workLat;g.workLng=c.workLng}
     g.contracts.push(c);
   });
   return order.map(function(k,i){
@@ -492,8 +515,7 @@ function openDetail(id){
   var contractsHTML=g.contracts.map(function(c){
     return '<div class="contract"><div class="ct"><div><div class="cp">'+esc(c.product||"상품 미등록")+'</div>'+
       '<div class="cf">월 '+won(c.fee)+(c.last?' · 최근접촉 '+esc(c.last):'')+'</div></div>'+
-      '<button class="edit" onclick="editContract('+c._row+')">수정</button></div>'+
-      (c.memo?'<div class="cm">'+esc(c.memo)+'</div>':'')+'</div>';
+      '<button class="edit" onclick="editContract('+c._row+')">수정</button></div>'+'</div>';
   }).join("");
   $("#detail-sheet").innerHTML='<button class="sheet-close" onclick="closeDetail()">✕</button><div class="grab"></div>'+
     '<div style="margin:8px 0 4px"><h2 style="margin:0 0 6px">'+esc(g.name)+'</h2><span class="badge '+sBadge(g.status)+'">'+esc(g.status)+'</span> <span class="cc">계약 '+g.contracts.length+'건</span></div>'+
@@ -501,9 +523,12 @@ function openDetail(id){
     '<a class="act call" href="tel:'+esc(g.phone)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>전화</a>'+
     '<a class="act sms" href="sms:'+esc(g.phone)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>문자</a>'+
     navBtn(g,false)+'</div>'+
-    kv("연락처",g.phone)+kv("주소",g.addr)+kv("생년월일",g.birth)+
+    kv("연락처",g.phone)+kv("자택",g.addr)+kv("직장",g.workAddr)+
+    ((g.company||g.position)?kv("상호·직급",[g.company,g.position].filter(Boolean).join(" / ")):"")+
+    kv("생년월일",g.birth)+
     kv("상령일",(g.renew||"-")+(note?' <b style="color:#c33">('+note+')</b>':""))+
     kv("가족관계",g.family)+kv("월 보험료 합계",won(g.feeTotal))+
+    (g.memo?'<div class="kv" style="display:block"><span class="k">고객 메모</span><div style="text-align:left;margin-top:7px;font-weight:500;color:var(--ink);white-space:pre-wrap;line-height:1.65;font-size:14px">'+esc(g.memo)+'</div></div>':"")+
     '<button class="save-btn" style="background:var(--surface-2);color:var(--brand);box-shadow:none;border:1px solid var(--line);margin-top:14px" onclick="editPerson('+g.id+')">고객 정보 수정</button>'+
     '<div class="section-title" style="margin:20px 4px 4px">📄 계약 '+g.contracts.length+'건</div>'+contractsHTML+
     '<button class="add-contract" onclick="addContract('+g.id+')">＋ 이 고객에게 계약 추가</button>'+
@@ -520,12 +545,13 @@ function askDeletePerson(id){var g=findPerson(id);if(!g)return;showConfirm("이 
 function deletePerson(g){showLoader(true);server("apiDeletePerson",getToken(),g.name).then(function(res){if(res&&res.ok){closeDetail();toast("삭제했어요");loadCustomers()}else{showLoader(false);toast("삭제 실패")}}).catch(function(e){showLoader(false);toast("삭제 오류: "+e.message)})}
 /* ===== 모바일 뒤로가기: 열린 창을 닫고 앱은 유지 ===== */
 var _guard=false;
-function overlaysOpen(){return $("#confirm-scrim").classList.contains("on")||$("#form-scrim").classList.contains("on")||$("#detail-scrim").classList.contains("on")}
+function overlaysOpen(){return $("#nav-scrim").classList.contains("on")||$("#confirm-scrim").classList.contains("on")||$("#form-scrim").classList.contains("on")||$("#detail-scrim").classList.contains("on")}
 function guardPush(){if(!_guard){_guard=true;try{history.pushState({modal:1},"")}catch(e){}}}
 window.addEventListener("popstate",function(){
   _guard=false;
   if(overlaysOpen()){
-    if($("#confirm-scrim").classList.contains("on"))closeConfirm();
+    if($("#nav-scrim").classList.contains("on"))$("#nav-scrim").classList.remove("on");
+    else if($("#confirm-scrim").classList.contains("on"))closeConfirm();
     else if($("#form-scrim").classList.contains("on"))closeForm();
     else if($("#detail-scrim").classList.contains("on"))closeDetail();
     if(overlaysOpen())guardPush();
@@ -572,35 +598,53 @@ function placeMe(la,ln){
 function haversine(la1,ln1,la2,ln2){var R=6371,rad=function(x){return x*Math.PI/180};var dLa=rad(la2-la1),dLn=rad(ln2-ln1);var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(rad(la1))*Math.cos(rad(la2))*Math.sin(dLn/2)*Math.sin(dLn/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
 /* ===== 주소 검색 (Daum) ===== */
-function openPostcode(){
+function openPostcode(which){
   if(typeof daum==="undefined"||!daum.Postcode){toast("주소 검색을 불러오지 못했어요");return}
-  new daum.Postcode({oncomplete:function(data){$("#f-addr").value=data.roadAddress||data.jibunAddress;$("#f-addr2").focus();}}).open();
+  new daum.Postcode({oncomplete:function(data){
+    var a=data.roadAddress||data.jibunAddress;
+    if(which==="work"){$("#f-workaddr").value=a;$("#f-workaddr2").focus();}
+    else{$("#f-addr").value=a;$("#f-addr2").focus();}
+  }}).open();
 }
 
-/* ===== 티맵 길찾기 ===== */
-function tmapHref(g){
-  if(!g||!g.addr)return "";
-  if(g.lat&&g.lng)return "tmap://route?goalname="+encodeURIComponent(g.addr)+"&goalx="+g.lng+"&goaly="+g.lat;
-  return "tmap://search?name="+encodeURIComponent(g.addr);
+/* ===== 티맵 길찾기 (자택/직장 선택) ===== */
+function tmapGo(addr,lat,lng){
+  if(!addr){toast("주소가 없어요");return}
+  var href=(lat&&lng)?("tmap://route?goalname="+encodeURIComponent(addr)+"&goalx="+lng+"&goaly="+lat):("tmap://search?name="+encodeURIComponent(addr));
+  location.href=href;
+}
+function navChoose(id){
+  var g=findPerson(id);if(!g)return;
+  var home=g.addr,work=g.workAddr;
+  if(home&&work){$("#nav-name").textContent=g.name+" 님";navTarget=g;$("#nav-scrim").classList.add("on");guardPush();}
+  else if(home)tmapGo(home,g.lat,g.lng);
+  else if(work)tmapGo(work,g.workLat,g.workLng);
+  else toast("등록된 주소가 없어요");
+}
+var navTarget=null;
+function navPick(kind){
+  var g=navTarget;$("#nav-scrim").classList.remove("on");
+  if(!g)return;
+  if(kind==="work")tmapGo(g.workAddr,g.workLat,g.workLng);
+  else tmapGo(g.addr,g.lat,g.lng);
 }
 function navBtn(g,stop){
-  var href=tmapHref(g);
   var ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>';
-  if(href)return '<a class="act route" target="_top" href="'+href+'"'+(stop?' onclick="event.stopPropagation()"':'')+'>'+ic+'길찾기</a>';
-  return '<button type="button" class="act route" onclick="'+(stop?"event.stopPropagation();":"")+'toast(\'주소가 없는 고객이에요\')">'+ic+'길찾기</button>';
+  return '<button type="button" class="act route" onclick="'+(stop?"event.stopPropagation();":"")+'navChoose('+g.id+')">'+ic+'길찾기</button>';
 }
 
 /* ===== 폼 ===== */
 var formMode="new",formPerson=null;
 function showGroups(person,contract){$("#grp-person").style.display=person?"block":"none";$("#grp-contract").style.display=contract?"block":"none"}
-function setContractEditOnly(editOnly){var s=$("#fld-status"),m=$("#fld-memo");if(s)s.style.display=editOnly?"none":"block";if(m)m.style.display=editOnly?"none":"block"}
+function setContractEditOnly(editOnly){var s=$("#fld-status");if(s)s.style.display=editOnly?"none":"block"}
+function clearPersonFields(){$("#f-workaddr").value="";$("#f-workaddr2").value="";$("#f-company").value="";$("#f-position").value="";$("#f-memo").value="";}
 function openNewForm(){
   formMode="new";formPerson=null;
   $("#form-title").textContent="신규 고객 추가";$("#f-row").value="";
   $("#f-name").value="";$("#f-phone").value="";$("#f-birth").value="";$("#f-renew").value="";
   $("#f-lastcontact").value=todayStr();
-  $("#f-addr").value="";$("#f-addr2").value="";setFamily("");
-  $("#f-product").value="";$("#f-fee").value="";$("#f-status").value="신규가망";$("#f-memo").value="";
+  $("#f-addr").value="";$("#f-addr2").value="";clearPersonFields();setFamily("");
+  $("#f-product").value="";$("#f-fee").value="";$("#f-status").value="신규가망";
   setContractEditOnly(false);showGroups(true,true);$("#del-btn").style.display="none";$("#form-scrim").classList.add("on");guardPush();
 }
 function openPersonForm(person){
@@ -609,7 +653,11 @@ function openPersonForm(person){
   $("#f-name").value=person.name||"";$("#f-phone").value=person.phone||"";
   $("#f-birth").value=person.birth?String(person.birth).slice(0,10):"";syncSangryeong();
   $("#f-lastcontact").value=person.last?String(person.last).slice(0,10):"";
-  $("#f-addr").value=person.addr||"";$("#f-addr2").value="";setFamily(person.family||"");
+  $("#f-addr").value=person.addr||"";$("#f-addr2").value="";
+  $("#f-workaddr").value=person.workAddr||"";$("#f-workaddr2").value="";
+  $("#f-company").value=person.company||"";$("#f-position").value=person.position||"";
+  $("#f-memo").value=person.memo||"";
+  setFamily(person.family||"");
   showGroups(true,false);$("#del-btn").style.display="none";$("#form-scrim").classList.add("on");guardPush();
 }
 function openContractForm(person,contract){
@@ -617,7 +665,7 @@ function openContractForm(person,contract){
   $("#form-title").textContent=contract?("계약 수정 · "+person.name):(person.name+" · 계약 추가");
   $("#f-row").value=contract?contract._row:"";
   $("#f-product").value=contract?contract.product:"";$("#f-fee").value=contract?contract.fee:"";
-  $("#f-status").value=contract?contract.status:"신규가망";$("#f-memo").value=contract?contract.memo:"";
+  $("#f-status").value=contract?contract.status:"신규가망";
   setContractEditOnly(!!contract);
   showGroups(false,true);$("#del-btn").style.display=contract?"block":"none";$("#form-scrim").classList.add("on");guardPush();
 }
@@ -647,7 +695,9 @@ function saveForm(){
   if(formMode==="person"){
     var pn=$("#f-name").value.trim();if(!pn){toast("이름은 필수예요");return}
     var paddr=($("#f-addr").value.trim()+" "+$("#f-addr2").value.trim()).trim();
-    var p={"이름":pn,"연락처":$("#f-phone").value.trim(),"생년월일":$("#f-birth").value.trim(),"주소":paddr,"가족관계":getFamily(),"상령일":$("#f-renew").value,"최근접촉일":$("#f-lastcontact").value};
+    var pwork=($("#f-workaddr").value.trim()+" "+$("#f-workaddr2").value.trim()).trim();
+    var p={"이름":pn,"연락처":$("#f-phone").value.trim(),"생년월일":$("#f-birth").value.trim(),"주소":paddr,"가족관계":getFamily(),"상령일":$("#f-renew").value,"최근접촉일":$("#f-lastcontact").value,
+      "직장주소":pwork,"상호명":$("#f-company").value.trim(),"직급":$("#f-position").value.trim(),"메모":$("#f-memo").value};
     showLoader(true);
     server("apiUpdatePerson",getToken(),formPerson.name,p).then(function(res){
       closeForm();if(res&&res.ok){toast("고객 정보를 수정했어요");loadCustomers()}else{showLoader(false);toast("수정 실패")}
@@ -659,13 +709,17 @@ function saveForm(){
     var name=$("#f-name").value.trim(),phone=$("#f-phone").value.trim();
     if(!name||!phone){toast("이름과 연락처는 필수예요");return}
     var addr=($("#f-addr").value.trim()+" "+$("#f-addr2").value.trim()).trim();
-    obj={"이름":name,"연락처":phone,"생년월일":$("#f-birth").value.trim(),"주소":addr,"가족관계":getFamily(),"상령일":$("#f-renew").value};
+    var nwork=($("#f-workaddr").value.trim()+" "+$("#f-workaddr2").value.trim()).trim();
+    obj={"이름":name,"연락처":phone,"생년월일":$("#f-birth").value.trim(),"주소":addr,"가족관계":getFamily(),"상령일":$("#f-renew").value,
+      "직장주소":nwork,"상호명":$("#f-company").value.trim(),"직급":$("#f-position").value.trim(),"메모":$("#f-memo").value};
   }else{
     var g=formPerson;
-    obj={"이름":g.name,"연락처":g.phone||"","생년월일":g.birth||"","주소":g.addr||"","가족관계":g.family||"","상령일":g.renew||"","위도":g.lat||"","경도":g.lng||""};
+    obj={"이름":g.name,"연락처":g.phone||"","생년월일":g.birth||"","주소":g.addr||"","가족관계":g.family||"","상령일":g.renew||"","최근접촉일":g.last||"",
+      "직장주소":g.workAddr||"","상호명":g.company||"","직급":g.position||"","메모":g.memo||"",
+      "위도":g.lat||"","경도":g.lng||"","직장위도":g.workLat||"","직장경도":g.workLng||""};
   }
-  obj["가입상품"]=$("#f-product").value.trim();obj["월보험료"]=$("#f-fee").value.trim();obj["상태"]=$("#f-status").value;obj["메모"]=$("#f-memo").value.trim();
-  if(row)obj._row=+row;else obj["최근접촉일"]=($("#f-lastcontact").value||todayStr());
+  obj["가입상품"]=$("#f-product").value.trim();obj["월보험료"]=$("#f-fee").value.trim();obj["상태"]=$("#f-status").value;
+  if(row){obj._row=+row;}else if(formMode==="new"){obj["최근접촉일"]=($("#f-lastcontact").value||todayStr());}
   showLoader(true);
   server("apiSaveCustomer",getToken(),obj).then(function(res){
     closeForm();if(res&&res.ok){toast(row?"수정했어요":"저장했어요");loadCustomers()}else{showLoader(false);toast("저장 실패")}
@@ -711,6 +765,7 @@ $("#del-btn").addEventListener("click",delCustomer);
 $("#confirm-no").addEventListener("click",closeConfirm);
 $("#confirm-yes").addEventListener("click",function(){var cb=_confirmCb;closeConfirm();if(cb)cb()});
 $("#confirm-scrim").addEventListener("click",function(e){if(e.target===this)closeConfirm()});
+$("#nav-scrim").addEventListener("click",function(e){if(e.target===this)this.classList.remove("on")});
 document.querySelectorAll(".scrim").forEach(function(s){s.addEventListener("click",function(e){if(e.target===s)s.classList.remove("on")})});
 
 (function(){var t=getToken();if(!t){return}heritageLoader(true);server("apiMe",t).then(function(res){if(res.ok)enterApp(res.user);else heritageLoader(false)}).catch(function(){heritageLoader(false)})})();
