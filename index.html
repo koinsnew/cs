@@ -383,7 +383,8 @@ function server(fn){
   if(typeof fetch==="function"){
     var ctrl=(typeof AbortController!=="undefined")?new AbortController():null;
     var t=ctrl?setTimeout(function(){try{ctrl.abort()}catch(e){}},25000):null;
-    return fetch(API_URL+"?"+_qs(fn,args),{method:"GET",redirect:"follow",signal:ctrl?ctrl.signal:undefined})
+    // POST 본문으로 보내 URL 길이 제한 없이 안전하게 저장 (긴 메모도 OK). text/plain 이라 CORS 사전요청 없음.
+    return fetch(API_URL,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:fn,args:args}),signal:ctrl?ctrl.signal:undefined})
       .then(function(r){if(t)clearTimeout(t);if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
       .then(function(txt){return JSON.parse(txt);})
       .catch(function(){if(t)clearTimeout(t);return _jsonp(fn,args);});
@@ -699,8 +700,8 @@ function saveForm(){
       "직장주소":pwork,"상호명":$("#f-company").value.trim(),"직급":$("#f-position").value.trim(),"메모":$("#f-memo").value};
     showLoader(true);
     server("apiUpdatePerson",getToken(),formPerson.name,p).then(function(res){
-      closeForm();if(res&&res.ok){toast("고객 정보를 수정했어요");loadCustomers()}else{showLoader(false);toast("수정 실패")}
-    }).catch(function(e){showLoader(false);toast("오류: "+e.message)});
+      if(res&&res.ok){closeForm();toast("고객 정보를 수정했어요");loadCustomers()}else{showLoader(false);toast("수정 실패"+(res&&res.msg?": "+res.msg:"")+" · 다시 시도해 주세요")}
+    }).catch(function(e){showLoader(false);toast("저장 오류: "+e.message+" · 다시 시도해 주세요")});
     return;
   }
   var obj,row=$("#f-row").value;
@@ -721,8 +722,8 @@ function saveForm(){
   if(row){obj._row=+row;}else if(formMode==="new"){obj["최근접촉일"]=($("#f-lastcontact").value||todayStr());}
   showLoader(true);
   server("apiSaveCustomer",getToken(),obj).then(function(res){
-    closeForm();if(res&&res.ok){toast(row?"수정했어요":"저장했어요");loadCustomers()}else{showLoader(false);toast("저장 실패")}
-  }).catch(function(e){showLoader(false);toast("저장 오류: "+e.message)});
+    if(res&&res.ok){closeForm();toast(row?"수정했어요":"저장했어요");loadCustomers()}else{showLoader(false);toast("저장 실패"+(res&&res.msg?": "+res.msg:"")+" · 다시 시도해 주세요")}
+  }).catch(function(e){showLoader(false);toast("저장 오류: "+e.message+" · 다시 시도해 주세요")});
 }
 function delCustomer(){var row=+$("#f-row").value;if(!row)return;showLoader(true);server("apiDeleteCustomer",getToken(),row).then(function(){closeForm();toast("삭제했어요");loadCustomers()}).catch(function(e){showLoader(false);toast("삭제 오류: "+e.message)})}
 function todayStr(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
