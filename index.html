@@ -90,6 +90,7 @@
   .act.call{background:var(--grad);color:#fff;box-shadow:0 6px 14px rgba(74,84,225,.28)}
   .act.sms{background:var(--surface-2);color:var(--brand);border:1px solid var(--line)}
   .act.route{background:#e2f6f2;color:#0a7c6e;border:1px solid #cdeee7}
+  .act.kakao{background:#fee500;color:#3a1d1d}
   .act svg{width:16px;height:16px}
 
   .search{width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:15px;padding:13px 15px;font-size:14.5px;margin-bottom:12px;outline:none;font-family:inherit;box-shadow:var(--shadow-sm)}
@@ -490,7 +491,7 @@ function cardHTML(g,note){
     '<div class="actions">'+
     '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>전화</a>'+
     '<a class="act sms" href="sms:'+esc(g.phone)+'" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>문자</a>'+
-    navBtn(g,true)+
+    kakaoBtn(g,true)+navBtn(g,true)+
     '</div></div>';
 }
 function bindCards(scope){scope.querySelectorAll(".card").forEach(function(el){el.addEventListener("click",function(){openDetail(+el.dataset.id)})})}
@@ -521,7 +522,7 @@ function openDetail(id){
     '<div class="actions" style="margin:16px 0 8px">'+
     '<a class="act call" href="tel:'+esc(g.phone)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>전화</a>'+
     '<a class="act sms" href="sms:'+esc(g.phone)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>문자</a>'+
-    navBtn(g,false)+'</div>'+
+    kakaoBtn(g,false)+navBtn(g,false)+'</div>'+
     kv("연락처",g.phone)+kv("자택",g.addr)+kv("직장",g.workAddr)+
     ((g.company||g.position)?kv("상호·직급",[g.company,g.position].filter(Boolean).join(" / ")):"")+
     kv("생년월일",g.birth)+
@@ -627,6 +628,26 @@ function navPick(kind){
   if(!g)return;
   if(kind==="work")tmapGo(g.workAddr,g.workLat,g.workLng);
   else tmapGo(g.addr,g.lat,g.lng);
+}
+/* ===== 카카오톡 (고객 대화방 선택 후 인사말 전송) =====
+   ※ 카카오는 '전화번호로 특정 대화방 바로 열기'를 허용하지 않아,
+     공유창 → 카카오톡 → 고객 대화방 선택 방식으로 연결합니다. */
+function kakaoBtn(g,stop){
+  var ic='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.8 1.9 5.2 4.7 6.6-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.6-2.5.7.1 1.4.2 2.1.2 5.5 0 10-3.5 10-7.7S17.5 3 12 3z"/></svg>';
+  return '<button type="button" class="act kakao" onclick="'+(stop?"event.stopPropagation();":"")+'kakaoTalk('+g.id+')">'+ic+'카톡</button>';
+}
+function copyText(t){
+  try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t);return true}}catch(e){}
+  try{var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);return true}catch(e){return false}
+}
+function kakaoTalk(id){
+  var g=findPerson(id);if(!g)return;
+  var me=(ME&&ME.name)?(ME.name+(ME.role?" "+ME.role:"")):"";
+  var msg=g.name+"님, 안녕하세요"+(me?". "+me+"입니다":"")+" 😊";
+  if(navigator.share){navigator.share({text:msg}).catch(function(){});return;}
+  if(g.phone)copyText(String(g.phone).replace(/-/g,""));
+  toast(g.phone?"연락처 복사됨 · 카카오톡 친구 검색에 붙여넣으세요":"카카오톡을 엽니다");
+  setTimeout(function(){location.href=/iPhone|iPad|iPod/i.test(navigator.userAgent)?"kakaotalk://":"kakaotalk://launch";},500);
 }
 function navBtn(g,stop){
   var ic='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>';
