@@ -638,15 +638,19 @@ function kakaoBtn(g,stop){
 }
 function copyText(t){
   try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t);return true}}catch(e){}
-  try{var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);return true}catch(e){return false}
+  try{var ta=document.createElement("textarea");ta.setAttribute("readonly","");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);return true}catch(e){return false}
 }
 function kakaoTalk(id){
   var g=findPerson(id);if(!g)return;
+  copyText(g.name);   // 고객 이름을 미리 복사 → 카톡 검색창에 '붙여넣기'만 하면 됨
   var me=(ME&&ME.name)?(ME.name+(ME.role?" "+ME.role:"")):"";
   var msg=g.name+"님, 안녕하세요"+(me?". "+me+"입니다":"")+" 😊";
-  if(navigator.share){navigator.share({text:msg}).catch(function(){});return;}
-  if(g.phone)copyText(String(g.phone).replace(/-/g,""));
-  toast(g.phone?"연락처 복사됨 · 카카오톡 친구 검색에 붙여넣으세요":"카카오톡을 엽니다");
+  if(navigator.share){
+    toast("'"+g.name+"' 이름 복사됨 · 카톡 검색창을 길게 눌러 붙여넣기");
+    navigator.share({text:msg}).catch(function(){});
+    return;
+  }
+  toast("'"+g.name+"' 이름 복사됨 · 카톡 검색창에 붙여넣기 하세요");
   setTimeout(function(){location.href=/iPhone|iPad|iPod/i.test(navigator.userAgent)?"kakaotalk://":"kakaotalk://launch";},500);
 }
 function navBtn(g,stop){
