@@ -68,6 +68,35 @@
   .stat .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:500}
   .ic-blue{background:rgba(74,84,225,.12);color:var(--brand)}.ic-red{background:rgba(226,77,77,.12);color:var(--red)}
   .ic-amber{background:rgba(224,145,42,.14);color:var(--amber)}.ic-green{background:rgba(18,165,148,.13);color:var(--green)}
+  /* 연체·실효 큰 카드 */
+  .od-card{position:relative;overflow:hidden;border-radius:24px;padding:20px 20px 18px;margin:4px 0 16px;color:#fff;cursor:pointer;
+    background:linear-gradient(135deg,#e5484d 0%,#c2185b 100%);box-shadow:0 14px 30px rgba(214,48,80,.32);transition:.15s}
+  .od-card:active{transform:scale(.985)}
+  .od-card::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.10)}
+  .od-card .od-top{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;opacity:.95}
+  .od-card .od-top svg{width:20px;height:20px}
+  .od-card .od-big{font-size:44px;font-weight:900;letter-spacing:-.03em;line-height:1.1;margin:10px 0 4px}
+  .od-card .od-big small{font-size:18px;font-weight:800;margin-left:4px}
+  .od-card .od-sub{font-size:13.5px;font-weight:600;opacity:.95}
+  .od-card .od-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .od-card .od-pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .od-card .od-go{margin-top:16px;background:#fff;color:#c2185b;border-radius:14px;padding:13px;text-align:center;font-weight:800;font-size:15px}
+  .od-ok{border-radius:18px;padding:14px 16px;margin:4px 0 14px;background:#e9f7f3;color:#0f7f72;font-weight:700;font-size:13.5px;border:1px solid #cdeee6}
+  .od-item{background:var(--surface);border:1.5px solid #f3c9cf;border-radius:22px;padding:18px 17px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .od-item.lapse{border-color:#f0a7b2;background:linear-gradient(180deg,#fff5f6 0%,#fff 60%)}
+  .od-item .oi-name{font-size:22px;font-weight:900;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .od-item .oi-prod{color:var(--ink-2);font-size:13.5px;margin-top:6px;line-height:1.5}
+  .od-item .oi-money{display:flex;gap:10px;margin-top:14px}
+  .od-item .oi-box{flex:1;background:var(--surface-2);border-radius:14px;padding:11px 12px}
+  .od-item .oi-box .k{font-size:11.5px;color:var(--muted);font-weight:700}
+  .od-item .oi-box .v{font-size:18px;font-weight:900;margin-top:2px;letter-spacing:-.02em}
+  .od-item .oi-box.neg .v{color:#d0243f}
+  .od-item .oi-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:12px;font-size:13px}
+  .od-item .oi-grid div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:6px 0}
+  .od-item .oi-grid span:first-child{color:var(--muted);white-space:nowrap}
+  .od-item .oi-grid span:last-child{font-weight:700;text-align:right}
+  .od-item .oi-none{margin-top:12px;font-size:12.5px;color:var(--muted);background:var(--surface-2);border-radius:12px;padding:10px 12px;text-align:center}
+  .b-lapse{background:#d0243f;color:#fff}.b-late{background:#f59e0b;color:#fff}.b-chk{background:#eef0f5;color:#454c60}
   .section-title{font-size:13px;font-weight:800;color:var(--ink-2);margin:22px 4px 10px;letter-spacing:-.01em}
 
   .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:15px 15px 14px;margin-bottom:11px;box-shadow:var(--shadow);transition:.15s}
@@ -238,6 +267,7 @@
 
   <section class="view active" id="v-today">
     <div class="hello"><div class="h1" id="hi-name">안녕하세요 👋</div><div class="h2" id="hi-date"></div></div>
+    <div id="od-wrap"></div>
     <div class="stats">
       <div class="stat"><div class="ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 11h5M18.5 8.5v5"/></svg></div><div class="n" id="s-total">0</div><div class="l">전체 고객</div></div>
       <div class="stat"><div class="ic ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="n" id="s-renew">0</div><div class="l">상령일 임박 (30일)</div></div>
@@ -508,6 +538,62 @@ function renderList(){
   bindCards(box);
 }
 
+
+/* ===== 연체·실효 ===== */
+var overdue=null;
+function nName(s){return String(s==null?"":s).replace(/\s|\(.*?\)/g,"")}
+function num(v){var n=parseFloat(String(v==null?"":v).replace(/[^0-9.\-]/g,""));return isNaN(n)?0:n}
+function wonS(v){var n=Math.round(num(v));if(!n)return "-";return (n<0?"−":"")+Math.abs(n).toLocaleString("ko-KR")+"원"}
+function odType(o){return String(o["유형"]||"").trim()||"연체"}
+function loadOverdue(){
+  return server("apiGetOverdue",getToken()).then(function(res){
+    if(!res||!res.ok){overdue=null;renderOverdueCard();return}
+    overdue=(res.items||[]).slice().sort(function(a,b){var la=/실효/.test(odType(a))?0:1,lb=/실효/.test(odType(b))?0:1;if(la!==lb)return la-lb;return num(a["예상환수액"])-num(b["예상환수액"])});
+    renderOverdueCard();
+  }).catch(function(){overdue=null;renderOverdueCard()});
+}
+function renderOverdueCard(){
+  var box=$("#od-wrap");if(!box)return;
+  if(overdue===null){box.innerHTML="";return}
+  if(!overdue.length){box.innerHTML='<div class="od-ok">✅ 연체·실효 고객이 없어요</div>';return}
+  var lapse=overdue.filter(function(o){return /실효/.test(odType(o))}).length,late=overdue.length-lapse;
+  var sum=overdue.reduce(function(t,o){return t+num(o["예상환수액"])},0);
+  var unchk=overdue.filter(function(o){return /미확인/.test(String(o["상태"]||""))}).length;
+  box.innerHTML='<div class="od-card" onclick="openOverdue()">'+
+    '<div class="od-top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>연체 · 실효 고객 — 꼭 확인하세요</div>'+
+    '<div class="od-big">'+overdue.length+'<small>건</small></div>'+
+    '<div class="od-sub">예상 환수액 합계 <b>'+wonS(sum)+'</b></div>'+
+    '<div class="od-row"><span class="od-pill">실효 '+lapse+'건</span><span class="od-pill">연체 '+late+'건</span>'+(unchk?'<span class="od-pill">미확인 '+unchk+'건</span>':'')+'</div>'+
+    '<div class="od-go">내역 확인하기 ›</div></div>';
+}
+function matchCustomer(name){var n=nName(name);if(!n)return null;for(var i=0;i<customers.length;i++)if(nName(customers[i].name)===n)return customers[i];return null}
+function odItemHTML(o){
+  var t=odType(o),isL=/실효/.test(t),st=String(o["상태"]||"").trim();
+  var g=matchCustomer(o["계약자"]);
+  var acts=(g&&g.phone)?'<div class="actions" style="margin-top:14px">'+
+    '<a class="act call" href="tel:'+esc(g.phone)+'">전화</a><a class="act sms" href="sms:'+esc(g.phone)+'">문자</a>'+kakaoBtn(g,false)+
+    '<button type="button" class="act sms" onclick="closeDetail();openDetail('+g.id+')">고객정보</button></div>'
+    :'<div class="oi-none">고객관리에 \''+esc(o["계약자"]||"")+'\' 님 연락처가 없어요</div>';
+  var row=function(k,v){return '<div><span>'+k+'</span><span>'+esc(v||"-")+'</span></div>'};
+  return '<div class="od-item'+(isL?' lapse':'')+'">'+
+    '<div class="oi-name">'+esc(o["계약자"]||"(이름 없음)")+' <span class="badge '+(isL?'b-lapse':'b-late')+'">'+esc(t)+'</span>'+(st?' <span class="badge b-chk">'+esc(st)+'</span>':'')+'</div>'+
+    '<div class="oi-prod"><b>'+esc(o["보험사"]||"")+'</b> '+esc(o["상품명"]||"")+'</div>'+
+    '<div class="oi-money"><div class="oi-box"><div class="k">월 보험료</div><div class="v">'+wonS(o["월보험료"])+'</div></div>'+
+    '<div class="oi-box neg"><div class="k">예상 환수액</div><div class="v">'+wonS(o["예상환수액"])+'</div></div></div>'+
+    '<div class="oi-grid">'+row("최종납회",o["최종납회"]?o["최종납회"]+"회":"")+row("계약일자",o["계약일자"])+row("증권번호",o["증권번호"])+row("리스트월",o["최근리스트월"])+
+    row("최근면담",o["최근면담일"])+row("다음확인",o["다음확인일"])+'</div>'+acts+'</div>';
+}
+function openOverdue(){
+  if(!overdue||!overdue.length)return;
+  $("#detail-sheet").innerHTML='<button class="sheet-close" onclick="closeDetail()">✕</button><div class="grab"></div>'+
+    '<h2 style="margin:8px 0 4px">연체 · 실효 고객 '+overdue.length+'건</h2>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">'+esc((ME&&ME.name)||"")+' FC 담당 계약 · 실효 건이 먼저 보여요</div>'+
+    overdue.map(odItemHTML).join("")+
+    '<button class="save-btn" style="background:var(--surface-2);color:var(--brand);box-shadow:none;border:1px solid var(--line)" onclick="refreshOverdue()">새로고침</button>';
+  $("#detail-scrim").classList.add("on");guardPush();
+}
+function refreshOverdue(){showLoader(true);loadOverdue().then(function(){showLoader(false);if(overdue&&overdue.length)openOverdue();else closeDetail();toast("연체·실효 내역을 새로 불러왔어요")})}
+
 /* ===== 상세 ===== */
 function openDetail(id){
   var g=findPerson(id);if(!g)return;
@@ -771,8 +857,8 @@ function doLogin(){
 function fmtDate(){var d=new Date();var w=["일","월","화","수","목","금","토"][d.getDay()];return d.getFullYear()+"년 "+(d.getMonth()+1)+"월 "+d.getDate()+"일 ("+w+")"}
 function bizDaysLeft(){var d=new Date();var y=d.getFullYear(),m=d.getMonth(),last=new Date(y,m+1,0).getDate();var n=0;for(var day=d.getDate();day<=last;day++){var wd=new Date(y,m,day).getDay();if(wd!==0&&wd!==6)n++;}return n}
 function enterApp(user){ME=user;heritageLoader(true);$("#login").classList.add("hide");$("#app").classList.add("on");$("#nav").style.display="flex";$("#me-name").textContent=user.name;$("#me-role").textContent=(user.role||"");var _bd=bizDaysLeft();$("#hi-name").textContent="이번 달 영업일이 "+_bd+"일 남았어요 💪";$("#hi-date").textContent=fmtDate();
-  var p=loadCustomers();(p&&p.then?p:Promise.resolve()).then(function(){setTimeout(function(){heritageLoader(false)},700)}).catch(function(){heritageLoader(false)});}
-function doLogout(){server("apiLogout",getToken()).catch(function(){});clearToken();customers=[];$("#app").classList.remove("on");$("#nav").style.display="none";$("#login").classList.remove("hide");$("#in-jumin").value=""}
+  var p=loadCustomers();(p&&p.then?p:Promise.resolve()).then(function(){loadOverdue();setTimeout(function(){heritageLoader(false)},700)}).catch(function(){heritageLoader(false)});}
+function doLogout(){server("apiLogout",getToken()).catch(function(){});clearToken();customers=[];overdue=null;renderOverdueCard();$("#app").classList.remove("on");$("#nav").style.display="none";$("#login").classList.remove("hide");$("#in-jumin").value=""}
 
 $("#login-btn").addEventListener("click",doLogin);
 $("#in-jumin").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
