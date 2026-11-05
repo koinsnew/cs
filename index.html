@@ -187,6 +187,9 @@
   .kv .k{color:var(--muted);white-space:nowrap;flex:0 0 auto;font-size:15px}.kv .v{font-weight:600;text-align:right;color:var(--ink);word-break:keep-all;overflow-wrap:anywhere;min-width:0}
   .memo-box{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:6px;font-size:16px;color:var(--ink);line-height:1.65;white-space:pre-wrap}
   .memo-box.none{color:var(--muted);font-size:15px}
+  ul.hist{list-style:none;margin:6px 0 0;padding:0}
+  ul.hist li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:16px}
+  ul.hist .hm{font-weight:700;color:var(--brand)}
   .btn-sec{width:100%;margin-top:14px;min-height:48px;background:#fff;color:var(--brand);border:1.5px solid var(--brand);border-radius:10px;font-weight:800;font-size:16px;font-family:inherit;cursor:pointer}
 
   .contract{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 12px 12px 14px;margin-top:8px}
@@ -588,8 +591,8 @@ function cardHTML(g,compact){
     '<div class="meta"><span class="p">'+esc(prod)+'</span><span class="f num">월 '+won(g.feeTotal)+'</span></div>'+
     (compact?'':'<div class="addr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span>'+esc(g.addr||"주소 미등록")+dist+'</span></div>')+
     '<div class="actions">'+
-    '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="event.stopPropagation();armContact('+g.id+')">'+SVG_CALL+'전화</a>'+
-    '<a class="act sms" href="sms:'+esc(g.phone)+'" onclick="event.stopPropagation();armContact('+g.id+')">문자</a>'+
+    '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="event.stopPropagation();armContact('+g.id+',\'전화\')">'+SVG_CALL+'전화</a>'+
+    '<a class="act sms" href="sms:'+esc(g.phone)+'" onclick="event.stopPropagation();armContact('+g.id+',\'문자\')">문자</a>'+
     kakaoBtn(g,true)+navBtn(g,true)+
     '</div></div>';
 }
@@ -668,7 +671,7 @@ function odItemHTML(o){
   var t=odType(o),isL=/실효/.test(t),st=String(o["상태"]||"").trim()||"미확인",id=odId(o);
   var g=matchCustomer(o["계약자"]);
   var acts=(g&&g.phone)?'<div class="actions" style="margin-top:14px">'+
-    '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="armContact('+g.id+')">'+SVG_CALL+'전화</a><a class="act sms" href="sms:'+esc(g.phone)+'" onclick="armContact('+g.id+')">문자</a>'+kakaoBtn(g,false)+
+    '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="armContact('+g.id+',\'전화\')">'+SVG_CALL+'전화</a><a class="act sms" href="sms:'+esc(g.phone)+'" onclick="armContact('+g.id+',\'문자\')">문자</a>'+kakaoBtn(g,false)+
     '<button type="button" class="act sms" onclick="closeDetail();openDetail('+g.id+')">고객정보</button></div>'
     :'<div class="oi-none">고객관리에 \''+esc(o["계약자"]||"")+'\' 님 연락처가 없어요</div>';
   var row=function(k,v){return '<div><span>'+k+'</span><span class="num">'+esc(v||"-")+'</span></div>'};
@@ -743,11 +746,12 @@ function openDetail(id){
     '<div class="sh-badges">'+flagBadge(g)+'<span class="badge '+sBadge(g.status)+'">'+esc(g.status)+'</span>'+(g.contracts.length>1?'<span class="cc">계약 '+g.contracts.length+'건</span>':'')+'</div>'+
     '<div class="dstat '+st.c+'">'+esc(st.t)+'</div></div>'+CLOSE_BTN+'</div>'+
     '<div class="actions">'+
-    '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="armContact('+g.id+')">'+SVG_CALL+'전화</a>'+
-    '<a class="act sms" href="sms:'+esc(g.phone)+'" onclick="armContact('+g.id+')">문자</a>'+
+    '<a class="act call" href="tel:'+esc(g.phone)+'" onclick="armContact('+g.id+',\'전화\')">'+SVG_CALL+'전화</a>'+
+    '<a class="act sms" href="sms:'+esc(g.phone)+'" onclick="armContact('+g.id+',\'문자\')">문자</a>'+
     kakaoBtn(g,false)+navBtn(g,false)+'</div></div>'+
     '<div class="grp"><h3 class="grp-t">메모</h3>'+memo+'</div>'+
     '<button type="button" class="touch'+(touched?' done':'')+'" id="touch-btn" onclick="markContacted('+g.id+')">'+(touched?'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>오늘 연락 기록됨':'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>오늘 연락함 기록')+'</button>'+
+    '<div class="grp"><h3 class="grp-t">연락 이력</h3><div id="hist-box" data-name="'+esc(nName(g.name))+'"></div></div>'+
     '<div class="grp"><h3 class="grp-t">연락 · 위치</h3>'+
     kv("마지막 연락",lastTxt,true)+kv("연락처",g.phone)+kv("자택",g.addr)+kv("직장",g.workAddr)+
     ((g.company||g.position)?kv("상호·직급",[g.company,g.position].filter(Boolean).join(" / ")):"")+'</div>'+
@@ -762,6 +766,7 @@ function openDetail(id){
   $("#detail-sheet").setAttribute("aria-labelledby","dt-title");$("#detail-sheet").removeAttribute("aria-label");
   openSheet("#detail-scrim");
   $("#detail-sheet").scrollTop=0;
+  loadHist(g);
 }
 function kv(k,v,raw){return '<div class="kv"><span class="k">'+k+'</span><span class="v">'+(v?(raw?v:esc(v)):"-")+'</span></div>'}
 var _lastFocus=null,_fromPop=false,_backPending=false,_pushAfter=false;
@@ -899,7 +904,7 @@ function copyText(t){
   try{var ta=document.createElement("textarea");ta.setAttribute("readonly","");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);return true}catch(e){return false}
 }
 function kakaoTalk(id){
-  var g=findPerson(id);if(!g)return;armContact(id);
+  var g=findPerson(id);if(!g)return;armContact(id,"카톡");
   copyText(g.name);   // 고객 이름을 미리 복사 → 카톡 검색창에 '붙여넣기'만 하면 됨
   var me=(ME&&ME.name)?(ME.name+(ME.role?" "+ME.role:"")):"";
   var msg=g.name+"님, 안녕하세요"+(me?". "+me+"입니다":"")+" 😊";
@@ -1015,25 +1020,44 @@ function todayStr(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth
 
 /* ===== 연락 기록: 전화·문자·카톡 후 돌아오면 '오늘 연락함' 제안 ===== */
 var _armed=null;
-function armContact(id){_armed={id:id,t:Date.now()}}
+function armContact(id,method){_armed={id:id,t:Date.now(),method:method||"기록"}}
 document.addEventListener("visibilitychange",function(){
   if(document.visibilityState!=="visible"||!_armed)return;
   var a=_armed;_armed=null;if(Date.now()-a.t<2500)return;
   var g=findPerson(a.id);if(!g||(g.last&&daysTo(g.last)===0))return;
-  $("#toast").classList.remove("on");$("#cbar-text").textContent=g.name+" 님과 연락했나요?";$("#cbar").dataset.id=g.id;$("#cbar").classList.add("on");
+  $("#toast").classList.remove("on");$("#cbar-text").textContent=g.name+" 님과 연락했나요?";$("#cbar").dataset.id=g.id;$("#cbar").dataset.method=a.method||"기록";$("#cbar").classList.add("on");
   clearTimeout(window._cbarT);window._cbarT=setTimeout(function(){$("#cbar").classList.remove("on")},15000);
 });
-function markContacted(id){
-  var g=findPerson(id);if(!g)return;var today=todayStr();
+function markContacted(id,method){
+  var g=findPerson(id);if(!g)return;var today=todayStr();method=method||"기록";
   $("#cbar").classList.remove("on");
   var btn=$("#touch-btn");if(btn)btn.disabled=true;
-  server("apiUpdatePerson",getToken(),g.name,{"이름":g.name,"최근접촉일":today}).then(function(res){
+  server("apiLogContact",getToken(),g.name,method).then(function(res){
+    // 서버가 아직 예전 버전이면 '최근접촉일'만 저장하는 방식으로 대신 기록
+    if(res&&!res.ok&&/알 수 없는 요청/.test(res.msg||""))return server("apiUpdatePerson",getToken(),g.name,{"이름":g.name,"최근접촉일":today});
+    return res;
+  }).then(function(res){
     if(btn)btn.disabled=false;
     if(!res||!res.ok){toast("기록하지 못했어요"+(res&&res.msg?": "+res.msg:"")+" · 다시 눌러 주세요");return}
     g.last=today;g.contracts.forEach(function(c){c.last=today});g.status=deriveStatus(g);renderAll();
+    var hc=histCache[nName(g.name)];if(hc){hc.unshift({at:today+" "+new Date().toTimeString().slice(0,5),method:method});renderHist(g)}
     if($("#detail-scrim").classList.contains("on")&&btn){btn.classList.add("done");btn.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>오늘 연락 기록됨'}
     toast(g.name+" 님 오늘 연락을 기록했어요");
   }).catch(function(e){if(btn)btn.disabled=false;toast("기록 오류: "+e.message)});
+}
+/* ===== 연락 이력 (고객 상세) ===== */
+var histCache={};
+function fmtHistAt(at){var m=String(at||"").match(/(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);if(!m)return esc(at||"");var d=new Date(+m[1],+m[2]-1,+m[3]);var w=["일","월","화","수","목","금","토"][d.getDay()];return (+m[2])+"/"+(+m[3])+" ("+w+")"+(m[4]?" "+m[4]+":"+m[5]:"")}
+function renderHist(g){
+  var box=$("#hist-box");if(!box||box.dataset.name!==nName(g.name))return;
+  var h=histCache[nName(g.name)];
+  if(h===undefined){box.innerHTML='<div class="memo-box none">불러오는 중…</div>';return}
+  if(h===null){box.parentNode.style.display="none";return}
+  box.innerHTML=h.length?'<ul class="hist">'+h.slice(0,5).map(function(x){return '<li><span class="num">'+fmtHistAt(x.at)+'</span><span class="hm">'+esc(x.method||"기록")+'</span></li>'}).join("")+'</ul>':'<div class="memo-box none">아직 기록이 없어요 · 전화·문자·카톡 뒤에 ‘오늘 연락함’을 누르면 쌓여요</div>';
+}
+function loadHist(g){
+  var key=nName(g.name);renderHist(g);if(histCache[key]!==undefined&&histCache[key]!==null)return;
+  server("apiGetContactLog",getToken(),g.name).then(function(res){histCache[key]=(res&&res.ok)?(res.logs||[]):null;renderHist(g)}).catch(function(){histCache[key]=null;renderHist(g)});
 }
 function setFilter(f){filter=f;document.querySelectorAll("#chips .chip").forEach(function(x){var on=x.dataset.f===f;x.classList.toggle("on",on);x.setAttribute("aria-pressed",String(on))});renderList()}
 
@@ -1059,7 +1083,7 @@ function enterApp(user){ME=user;heritageLoader(true);$("#login").classList.add("
   var c=readCache(),warm=false;
   if(c){try{customers=buildCustomers(c.rows);warm=true;renderAll();setTimeout(function(){heritageLoader(false)},250)}catch(e){warm=false}}
   loadCustomers(warm).then(function(){loadOverdue();if(!warm)setTimeout(function(){heritageLoader(false)},250)}).catch(function(){heritageLoader(false)});}
-function doLogout(){server("apiLogout",getToken()).catch(function(){});clearToken();clearCache();customers=[];overdue=null;odMap={};odDraft={};renderOverdueCard();renderAll();$("#detail-sheet").innerHTML="";$("#app").classList.remove("on");$("#nav").style.display="none";$("#login").classList.remove("hide");$("#in-jumin").value=""}
+function doLogout(){server("apiLogout",getToken()).catch(function(){});clearToken();clearCache();customers=[];overdue=null;odMap={};odDraft={};histCache={};renderOverdueCard();renderAll();$("#detail-sheet").innerHTML="";$("#app").classList.remove("on");$("#nav").style.display="none";$("#login").classList.remove("hide");$("#in-jumin").value=""}
 
 $("#in-jumin").addEventListener("input",function(){this.value=this.value.replace(/[^0-9]/g,"").slice(0,7)});
 $("#logout-btn").addEventListener("click",function(){showConfirm("로그아웃할까요?","다시 들어올 때 성명과 주민번호 뒷자리를 입력해야 해요.",doLogout,"로그아웃","brand")});
@@ -1069,7 +1093,7 @@ $("#chips").addEventListener("click",function(e){var c=e.target.closest(".chip")
 $("#to-list").addEventListener("click",showAll);
 $("#sort").addEventListener("change",function(){sortKey=this.value;renderList()});
 $("#detail-sheet").addEventListener("input",function(e){var t=e.target;if(!t||!t.id||t.id.indexOf("odf-")!==0||!odOpenForm)return;var d=odDraft[odOpenForm]=odDraft[odOpenForm]||{};d[t.id]=t.value});
-$("#cbar-yes").addEventListener("click",function(){markContacted(+$("#cbar").dataset.id)});
+$("#cbar-yes").addEventListener("click",function(){markContacted(+$("#cbar").dataset.id,$("#cbar").dataset.method)});
 $("#cbar-no").addEventListener("click",function(){$("#cbar").classList.remove("on")});
 $("#f-fee").addEventListener("input",function(){this.value=fmtFee(this.value)});
 $("#near-btn").addEventListener("click",showNear);
