@@ -425,6 +425,39 @@
   .fill-note{display:flex;align-items:center;gap:12px;margin:12px 0 0;padding:12px 12px 12px 16px;border-radius:16px;background:var(--surface-2);color:var(--ink-2);font-size:14px;line-height:1.5}
   .fill-note b{display:block;color:var(--ink);font-size:15px;font-weight:700}
   .fill-note button{flex:0 0 auto;min-height:44px;padding:0 14px;border:none;border-radius:var(--r-btn);background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+  /* 주소 검색 (화면 안에 띄움: 홈 화면 바로가기·카톡 안 브라우저에서도 동작) */
+  .pc-layer{position:fixed;inset:0;z-index:230;background:#fff;display:none;flex-direction:column}
+  .pc-layer.on{display:flex}
+  .pc-head{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 12px 8px 20px;border-bottom:1px solid var(--line)}
+  .pc-head h2{flex:1;margin:0;font-size:18px;font-weight:700}
+  .pc-body{flex:1;position:relative;overflow:hidden;min-height:0}
+  .pc-wait{padding:48px 24px;text-align:center;color:var(--ink-2);font-size:15px;line-height:1.6}
+  .pc-wait button{margin-top:14px;min-height:44px;padding:0 18px;border:none;border-radius:var(--r-btn);background:var(--brand-tint);color:var(--brand);font:inherit;font-weight:700;cursor:pointer}
+  [hidden]{display:none!important}
+  /* 계약일자 */
+  .contract .cd{color:var(--muted);font-size:14px;margin-top:2px}
+  .contract .cd.none{color:var(--line-2)}
+  .field .ro-note{min-height:48px;display:flex;align-items:center;padding:0 14px;border-radius:var(--r-btn);background:var(--surface-2);color:var(--ink-2);font-size:15px}
+  /* 빠진 계약 불러오기 */
+  .pull-btn{flex:0 0 auto;min-height:44px;padding:0 14px;border:none;border-radius:var(--r-btn);background:var(--brand-tint);color:var(--brand);font:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .im-row{display:flex;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line)}
+  .im-row input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:24px;height:24px;margin:2px 0 0;border:2px solid var(--line-2);border-radius:7px;background:#fff;display:grid;place-items:center;cursor:pointer}
+  .im-row input[type=checkbox]::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg);opacity:0}
+  .im-row input[type=checkbox]:checked{background:var(--brand);border-color:var(--brand)}
+  .im-row input[type=checkbox]:checked::after{opacity:1}
+  .im-row input[type=checkbox]:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(31,100,230,.25)}
+  .im-main{flex:1;min-width:0}
+  .im-prod{font-size:16px;font-weight:700;line-height:1.4;color:var(--ink)}
+  .im-meta{font-size:14px;color:var(--muted);margin-top:2px}
+  .im-name{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .im-name label{flex:0 0 auto;font-size:14px;color:var(--ink-2);font-weight:600}
+  .im-name input{flex:1;min-width:0;min-height:44px;border:1.5px solid transparent;background:var(--surface-2);border-radius:var(--r-btn);padding:0 12px;font:inherit;font-size:16px;outline:none}
+  .im-name input:focus{border-color:var(--brand);background:#fff}
+  .im-name input.need{border-color:var(--alert)}
+  .im-tag{display:inline-block;font-size:13px;font-weight:600;padding:0 8px;border-radius:999px;background:var(--caution-bg);color:var(--caution);line-height:1.7;margin-left:6px;vertical-align:1px}
+  .im-foot{position:sticky;bottom:0;z-index:3;background:#fff;margin:12px -18px -28px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .im-foot button{width:100%;min-height:52px;border:none;border-radius:var(--r-btn);background:var(--brand);color:#fff;font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+  .im-foot button:disabled{opacity:.45;cursor:default}
   /* 같은 고객 합치기 */
   .merge-note{display:flex;align-items:center;gap:12px;margin:12px 0 0;padding:12px 12px 12px 16px;border-radius:16px;background:var(--brand-tint);color:var(--ink-2);font-size:14px;line-height:1.5}
   .merge-note b{display:block;color:var(--ink);font-size:15px;font-weight:700}
@@ -512,6 +545,7 @@
         <option value="name">이름순</option>
         <option value="dist" disabled>가까운 순 (지도에서 내 주변 고객)</option>
       </select>
+      <button type="button" class="pull-btn" id="pull-btn">빠진 계약 불러오기</button>
     </div>
     <div class="hintline" id="hint"></div>
     <div id="list"></div>
@@ -537,6 +571,10 @@
   </section>
 </div>
 
+<div class="pc-layer" id="pc-layer" role="dialog" aria-modal="true" aria-labelledby="pc-title">
+  <div class="pc-head"><h2 id="pc-title">주소 검색</h2><button class="sheet-close" type="button" onclick="closePostcode()" aria-label="주소 검색 닫기"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="pc-body" id="pc-body"></div>
+</div>
 <div class="scrim" id="detail-scrim"><div class="sheet" id="detail-sheet" role="dialog" aria-modal="true" tabindex="-1"></div></div>
 
 <div class="scrim" id="form-scrim">
@@ -571,6 +609,7 @@
       <h3 class="grp-t" style="margin:22px 0 0;font-size:16px;color:var(--ink)">계약 정보</h3>
       <div class="field"><label for="f-product">가입상품</label><input id="f-product" placeholder="실손 / 종신 …"></div>
       <div class="field"><label for="f-fee">월 보험료</label><input id="f-fee" placeholder="예: 120,000" inputmode="numeric"></div>
+      <div class="field" id="fld-cdate"><label for="f-cdate">계약일자</label><input id="f-cdate" type="date"><div class="ro-note" id="f-cdate-ro" hidden></div></div>
       <div class="field" id="fld-status"><label for="f-status">고객 구분 <span class="hint">· 상령임박·장기미접촉은 날짜로 자동 표시</span></label>
         <select id="f-status"><option>신규가망</option><option>관리중</option></select>
       </div>
@@ -692,7 +731,7 @@ function mapRow(raw){
     fee:val(raw,["월보험료","보험료"]),renew:val(raw,["상령일","갱신일","만기"]),status:normStatus(val(raw,["상태"])),
     family:val(raw,["가족관계","가족"]),last:val(raw,["최근접촉","최근"]),memo:ex("메모")||val(raw,["비고"]),
     workAddr:ex("직장주소"),company:ex("상호명")||val(raw,["상호","회사"]),position:ex("직급"),
-    rawPhone:String(ex("원본연락처")||""),entry:String(ex("정보입력")||""),alias:String(ex("연결이름")||""),rawBirth:String(ex("원본생년월일")||""),
+    rawPhone:String(ex("원본연락처")||""),entry:String(ex("정보입력")||""),cdate:String(ex("계약일자")||"").slice(0,10),insurer:String(ex("보험사")||""),alias:String(ex("연결이름")||""),rawBirth:String(ex("원본생년월일")||""),
     lat:parseFloat(ex("위도"))||null,lng:parseFloat(ex("경도"))||null,
     workLat:parseFloat(ex("직장위도"))||null,workLng:parseFloat(ex("직장경도"))||null};
 }
@@ -1048,9 +1087,10 @@ function openDetail(id){
   var g=findPerson(id);if(!g)return;
   var d=daysTo(g.renew);var note=d!==null?(d<0?(-d)+"일 지남":"D-"+d):"";
   var st=stLine(g);
-  var contractsHTML=g.contracts.map(function(c){
+  var contractsHTML=g.contracts.slice().sort(function(a,b){return String(b.cdate||"").localeCompare(String(a.cdate||""))}).map(function(c){
     return '<div class="contract"><div class="ct"><div><div class="cp">'+esc(c.product||"상품 미등록")+'</div>'+
-      '<div class="cf num">월 '+won(c.fee)+'</div></div>'+
+      '<div class="cf num">월 '+won(c.fee)+(c.insurer?' · '+esc(c.insurer):'')+'</div>'+
+      '<div class="cd num'+(c.cdate?'':' none')+'">'+(c.cdate?'계약일 '+esc(fmtCDate(c.cdate)):'계약일 정보 없음')+'</div></div>'+
       '<button type="button" class="edit" onclick="editContract('+c._row+')" aria-label="'+esc((c.product||"상품")+" 계약 수정")+'">수정</button></div>'+'</div>';
   }).join("");
   var lastTxt=g.last?(function(){var dd=-daysTo(g.last);return esc(g.last)+' ('+(dd<=0?"오늘":dd+"일 전")+')'})():"";
@@ -1148,6 +1188,49 @@ function doMerge(fromId,toId){var a=findPerson(fromId),b=findPerson(toId);if(!a|
     showLoader(false);var m=(res&&res.msg)||"";
     toast(/알 수 없는 요청/.test(m)?"서버를 새 버전으로 배포해야 합치기를 쓸 수 있어요":(m||"합치지 못했어요"))
   }).catch(function(e){showLoader(false);toast("합치지 못했어요 · "+netErr(e))})}
+/* ===== 헤리티지 프로에서 빠진 계약 불러오기 ===== */
+var _im=null;
+function openImport(){
+  _im={items:null};
+  $("#detail-sheet").innerHTML='<div class="sheet-head"><div class="grab"></div><div class="sh-row"><div class="sh-t"><h2 id="dt-title">빠진 계약 불러오기</h2>'+
+    '<div class="mg-sub">헤리티지 프로에 저장된 내 계약 중 고객 목록에 없는 계약이에요. 철회한 계약은 빼고 보여 드려요.</div></div>'+CLOSE_BTN+'</div></div>'+
+    '<div id="im-list"><div class="mg-empty">헤리티지 프로에서 계약을 찾고 있어요…</div></div>';
+  $("#detail-sheet").setAttribute("aria-labelledby","dt-title");
+  openSheet("#detail-scrim");$("#detail-sheet").scrollTop=0;
+  server("apiGetMissingContracts",getToken()).then(function(res){
+    if(!_im||!$("#im-list"))return;
+    if(!res||!res.ok){var m=(res&&res.msg)||"";$("#im-list").innerHTML='<div class="mg-empty">'+(/알 수 없는 요청/.test(m)?"서버를 새 버전으로 배포해야 쓸 수 있어요":esc(m||"불러오지 못했어요"))+'</div>';return}
+    _im.items=res.items||[];renderImport(res.total||0);
+  }).catch(function(e){if($("#im-list"))$("#im-list").innerHTML='<div class="mg-empty">불러오지 못했어요 · '+esc(netErr(e))+'<br><button type="button" class="btn-sec" style="width:auto;padding:0 20px" onclick="openImport()">다시 시도</button></div>'});
+}
+function renderImport(total){
+  var box=$("#im-list"),items=_im.items;
+  if(!items.length){box.innerHTML='<div class="mg-empty"><b style="display:block;color:var(--ink);font-size:16px;margin-bottom:4px">빠진 계약이 없어요</b>헤리티지 프로의 내 계약 '+total+'건이 모두 고객 목록에 있어요.</div>';return}
+  var names=customers.map(function(c){return c.name}).filter(function(v,i,a){return a.indexOf(v)===i}).sort(function(a,b){return a.localeCompare(b,"ko")});
+  box.innerHTML='<datalist id="im-names">'+names.map(function(n){return '<option value="'+esc(n)+'">'}).join("")+'</datalist>'+
+    items.map(function(c,i){var nm=c.contractor||"";
+      return '<div class="im-row"><input type="checkbox" class="im-ck" id="im-'+i+'" data-i="'+i+'"'+(nm?' checked':'')+' aria-label="'+esc((c.product||"계약")+" 불러오기")+'">'+
+        '<div class="im-main"><label for="im-'+i+'" class="im-prod">'+esc(c.product||"상품 이름 없음")+(c.owner?'<span class="im-tag">'+esc(c.owner)+' 님과 공동</span>':'')+'</label>'+
+        '<div class="im-meta num">계약일 '+esc(fmtCDate(c.date)||"-")+' · '+esc(c.company||"보험사 없음")+' · 월 '+won(c.premium)+'</div>'+
+        '<div class="im-name"><label for="im-n-'+i+'">고객</label><input id="im-n-'+i+'" class="im-nm" data-i="'+i+'" list="im-names" value="'+esc(nm)+'" placeholder="'+(nm?'':'계약자 이름 없음 · 이름 입력')+'" autocomplete="off"></div></div></div>'}).join("")+
+    '<div class="im-foot"><button type="button" id="im-go" onclick="doImport()"></button></div>';
+  box.querySelectorAll(".im-ck").forEach(function(ck){ck.addEventListener("change",syncImport)});
+  box.querySelectorAll(".im-nm").forEach(function(inp){inp.addEventListener("input",function(){inp.classList.remove("need");var ck=$("#im-"+inp.dataset.i);if(inp.value.trim()&&ck&&!ck.checked){ck.checked=true}syncImport()})});
+  syncImport();
+}
+function syncImport(){var n=document.querySelectorAll("#im-list .im-ck:checked").length,b=$("#im-go");if(!b)return;b.disabled=!n;b.textContent=n?("고른 계약 "+n+"건 불러오기"):"불러올 계약을 골라 주세요"}
+function doImport(){
+  var list=[],miss=null;
+  document.querySelectorAll("#im-list .im-ck:checked").forEach(function(ck){var i=+ck.dataset.i,inp=$("#im-n-"+i),nm=inp.value.trim();
+    if(!nm){inp.classList.add("need");if(!miss)miss=inp;return}list.push({id:_im.items[i].id,name:nm})});
+  if(miss){toast("고객 이름이 빈 계약이 있어요 · 이름을 적거나 체크를 풀어 주세요");try{miss.focus()}catch(e){}return}
+  if(!list.length)return;
+  showLoader(true);
+  server("apiImportContracts",getToken(),list).then(function(res){
+    if(res&&res.ok){toast(res.added+"건을 불러왔어요"+(res.skipped?" · "+res.skipped+"건은 이미 있거나 불러올 수 없어요":""));closeDetail();loadCustomers();return}
+    showLoader(false);var m=(res&&res.msg)||"";toast(/알 수 없는 요청/.test(m)?"서버를 새 버전으로 배포해야 쓸 수 있어요":(m||"불러오지 못했어요"));
+  }).catch(function(e){showLoader(false);toast("불러오지 못했어요 · "+netErr(e))});
+}
 function odLink(g){var i=odInfo[odKey(g)];if(!i||!odFlag(g))return "";return '<button type="button" class="btn-sec" style="margin-top:12px" onclick="closeDetail();openOverdue(\''+esc(i.id)+'\')">연체·실효 내역과 면담 기록 보기</button>'}
 function kv(k,v,raw){return '<div class="kv"><span class="k">'+k+'</span><span class="v">'+(v?(raw?v:esc(v)):"-")+'</span></div>'}
 var _lastFocus=null,_fromPop=false,_backPending=false,_pushAfter=false;
@@ -1168,7 +1251,7 @@ function askDeletePerson(id){var g=findPerson(id);if(!g)return;
 function deletePerson(g){showLoader(true);server("apiDeletePerson",getToken(),g.name).then(function(res){if(res&&res.ok){closeDetail();toast("삭제했어요");loadCustomers()}else{showLoader(false);toast("삭제 실패")}}).catch(function(e){showLoader(false);toast("삭제하지 못했어요 · "+netErr(e))})}
 /* ===== 모바일 뒤로가기: 열린 창을 닫고 앱은 유지 ===== */
 var _guard=false;
-function overlaysOpen(){return $("#nav-scrim").classList.contains("on")||$("#confirm-scrim").classList.contains("on")||$("#form-scrim").classList.contains("on")||$("#detail-scrim").classList.contains("on")}
+function overlaysOpen(){return $("#pc-layer").classList.contains("on")||$("#nav-scrim").classList.contains("on")||$("#confirm-scrim").classList.contains("on")||$("#form-scrim").classList.contains("on")||$("#detail-scrim").classList.contains("on")}
 function guardPush(){if(_guard)return;if(_backPending){_pushAfter=true;return}_guard=true;try{history.pushState({modal:1},"")}catch(e){}}
 function settleBack(){_backPending=false;if(_pushAfter){_pushAfter=false;if(overlaysOpen()&&!_guard){_guard=true;try{history.pushState({modal:1},"")}catch(e){}}}}
 window.addEventListener("popstate",function(){
@@ -1176,7 +1259,8 @@ window.addEventListener("popstate",function(){
   _guard=false;_fromPop=true;
   try{
     if(overlaysOpen()){
-      if($("#nav-scrim").classList.contains("on"))closeNav();
+      if($("#pc-layer").classList.contains("on"))closePostcode();
+      else if($("#nav-scrim").classList.contains("on"))closeNav();
       else if($("#confirm-scrim").classList.contains("on"))closeConfirm();
       else if($("#form-scrim").classList.contains("on")){if(formDirty)warnDirty();else closeForm();}
       else if($("#detail-scrim").classList.contains("on"))closeDetail();
@@ -1185,7 +1269,7 @@ window.addEventListener("popstate",function(){
   }finally{_fromPop=false}
 });
 document.addEventListener("keydown",function(e){if(e.key!=="Escape"||!overlaysOpen())return;
-  if($("#nav-scrim").classList.contains("on"))closeNav();else if($("#confirm-scrim").classList.contains("on"))closeConfirm();
+  if($("#pc-layer").classList.contains("on"))closePostcode();else if($("#nav-scrim").classList.contains("on"))closeNav();else if($("#confirm-scrim").classList.contains("on"))closeConfirm();
   else if($("#form-scrim").classList.contains("on")){if(formDirty)warnDirty();else closeForm()}else if($("#detail-scrim").classList.contains("on"))closeDetail()});
 
 /* ===== 지도 (처음 열 때만 불러옴) ===== */
@@ -1255,15 +1339,27 @@ function placeMe(la,ln){
 function haversine(la1,ln1,la2,ln2){var R=6371,rad=function(x){return x*Math.PI/180};var dLa=rad(la2-la1),dLn=rad(ln2-ln1);var a=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(rad(la1))*Math.cos(rad(la2))*Math.sin(dLn/2)*Math.sin(dLn/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
 /* ===== 주소 검색 (Daum) ===== */
+var _pcWhich=null;
 function openPostcode(which){
-  if(typeof daum==="undefined"||!daum.Postcode){toast("주소 검색을 준비하고 있어요 · 잠시 뒤 다시 눌러 주세요");ensurePostcode().catch(function(){toast("주소 검색을 불러오지 못했어요 · 인터넷 연결을 확인해 주세요")});return}
-  new daum.Postcode({oncomplete:function(data){
-    var a=data.roadAddress||data.jibunAddress;
-    var el=(which==="work")?$("#f-workaddr"):$("#f-addr");
-    el.value=a+" ";formDirty=true;
-    try{el.focus();el.setSelectionRange(el.value.length,el.value.length);}catch(e){}
-  }}).open();
+  _pcWhich=which;var L=$("#pc-layer"),body=$("#pc-body");
+  $("#pc-title").textContent=(which==="work"?"직장":"자택")+" 주소 검색";
+  body.innerHTML='<div class="pc-wait">주소 검색을 불러오는 중이에요…</div>';
+  if(!L.classList.contains("on")){L.classList.add("on");guardPush()}
+  ensurePostcode().then(function(){
+    if(!L.classList.contains("on"))return;body.innerHTML="";
+    new daum.Postcode({width:"100%",height:"100%",
+      oncomplete:function(data){
+        var a=data.roadAddress||data.jibunAddress||data.address||"";
+        var el=(_pcWhich==="work")?$("#f-workaddr"):$("#f-addr");
+        el.value=a+" ";formDirty=true;closePostcode();
+        setTimeout(function(){try{el.focus();el.setSelectionRange(el.value.length,el.value.length)}catch(e){}},80);
+      }}).embed(body,{autoClose:false});
+  }).catch(function(){
+    if(!L.classList.contains("on"))return;
+    body.innerHTML='<div class="pc-wait">주소 검색을 불러오지 못했어요.<br>인터넷 연결을 확인하거나 주소를 직접 적어 주세요.<br><button type="button" onclick="openPostcode(_pcWhich)">다시 시도</button></div>';
+  });
 }
+function closePostcode(){var L=$("#pc-layer");if(!L.classList.contains("on"))return;L.classList.remove("on");$("#pc-body").innerHTML="";afterClose()}
 
 /* ===== 티맵 길찾기 (자택/직장 선택) ===== */
 function tmapGo(addr,lat,lng){
@@ -1467,10 +1563,14 @@ function openContractForm(person,contract){formDirty=false;resetFormNotes();
   $("#form-title").textContent=contract?("계약 수정 · "+person.name):(person.name+" · 계약 추가");
   $("#f-row").value=contract?contract._row:"";
   $("#f-product").value=contract?contract.product:"";$("#f-fee").value=contract?fmtFee(contract.fee):"";
+  var fromHp=!!(contract&&contract._row>1),cd=contract&&contract.cdate?String(contract.cdate).slice(0,10):"";
+  $("#f-cdate").value=cd;$("#f-cdate").hidden=fromHp;$("#f-cdate-ro").hidden=!fromHp;
+  $("#f-cdate-ro").textContent=cd?fmtCDate(cd)+" · 헤리티지 프로 계약일":"헤리티지 프로에 계약일이 없어요";
   $("#f-status").value=person?manualStatus(person):"신규가망";
   setContractEditOnly(!!contract);
   showGroups(false,true);$("#del-btn").style.display=(contract&&contract._row)?"block":"none";openSheet("#form-scrim");
 }
+function fmtCDate(s){var m=String(s||"").match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/);return m?m[1]+"."+("0"+m[2]).slice(-2)+"."+("0"+m[3]).slice(-2):String(s||"")}
 function fmtFee(v){var d=String(v==null?"":v).replace(/[^0-9]/g,"");return d?Number(d).toLocaleString("ko-KR"):""}
 function syncSangryeong(){var b=$("#f-birth").value;$("#f-renew").value=b?clientSangryeong(b):""}
 function addFamRow(rel,name){
@@ -1523,6 +1623,7 @@ function saveForm(){
       "위도":g.lat||"","경도":g.lng||"","직장위도":g.workLat||"","직장경도":g.workLng||""};
   }
   obj["가입상품"]=$("#f-product").value.trim();obj["월보험료"]=$("#f-fee").value.replace(/[^0-9]/g,"");obj["상태"]=$("#f-status").value;
+  if(!(row&&+row>1))obj["계약일자"]=$("#f-cdate").value||"";
   if(row){obj._row=+row;}else if(formMode==="new"){obj["최근접촉일"]=($("#f-lastcontact").value||todayStr());}
   showLoader(true);
   server("apiSaveCustomer",getToken(),obj).then(function(res){
@@ -1615,6 +1716,7 @@ $("#search").addEventListener("input",function(e){query=e.target.value;renderLis
 $("#chips").addEventListener("click",function(e){var c=e.target.closest(".chip");if(!c)return;setFilter(c.dataset.f)});
 $("#to-list").addEventListener("click",showAll);
 $("#sort").addEventListener("change",function(){sortKey=this.value;renderList()});
+$("#pull-btn").addEventListener("click",openImport);
 $("#detail-sheet").addEventListener("input",function(e){var t=e.target;if(!t||!t.id||t.id.indexOf("odf-")!==0||!odOpenForm)return;var d=odDraft[odOpenForm]=odDraft[odOpenForm]||{};d[t.id]=t.value});
 $("#cbar-yes").addEventListener("click",function(){markContacted(+$("#cbar").dataset.id,$("#cbar").dataset.method)});
 $("#cbar-no").addEventListener("click",function(){$("#cbar").classList.remove("on")});
