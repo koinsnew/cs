@@ -60,6 +60,13 @@
   .login-btn:disabled{opacity:.6}
   .login-err{color:var(--alert);font-size:14px;text-align:center;margin-top:12px;min-height:20px;font-weight:700}
   .login-note{color:var(--ink-2);font-size:14px;text-align:center;margin-top:14px;line-height:1.5}
+  .login .remember{display:flex;align-items:center;gap:10px;min-height:44px;margin:12px 0 0;padding:0 2px;font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .login .remember input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;min-height:0;margin:0;padding:0;border:2px solid var(--line-2);border-radius:7px;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:none;transition:background .15s,border-color .15s}
+  .login .remember input::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg);opacity:0}
+  .login .remember input:checked{background:var(--brand);border-color:var(--brand)}
+  .login .remember input:checked::after{opacity:1}
+  .login .remember input:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(31,100,230,.25)}
+  .login .remember .sub{margin-left:auto;font-size:13px;font-weight:500;color:var(--muted)}
 
   .appbar{position:sticky;top:0;z-index:40;background:#fff;padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
   .appbar .brand{display:flex;align-items:center;gap:10px;min-width:0}
@@ -441,6 +448,7 @@
     <input id="in-name" placeholder="홍길동" autocomplete="name">
     <label for="in-jumin">주민번호 뒷자리</label>
     <input id="in-jumin" placeholder="7자리 숫자" inputmode="numeric" autocomplete="off" data-lpignore="true" data-1p-ignore="true" type="password" maxlength="7">
+    <label class="remember" for="in-remember"><input type="checkbox" id="in-remember" checked>자동 로그인<span class="sub">공용 기기에서는 꺼 주세요</span></label>
     <button class="login-btn" id="login-btn" type="submit">로그인</button>
     </form>
     <div class="login-err" id="login-err" role="alert"></div>
@@ -1507,7 +1515,8 @@ function doLogin(){
   var name=$("#in-name").value.trim(),jumin=$("#in-jumin").value.trim();
   if(!name||!jumin){$("#login-err").textContent="성명과 주민번호 뒷자리를 입력해 주세요.";return}
   $("#login-btn").disabled=true;$("#login-err").textContent="";heritageLoader(true);
-  server("apiLogin",name,jumin).then(function(res){$("#login-btn").disabled=false;if(res.ok){setToken(res.token);enterApp(res.user)}else{heritageLoader(false);$("#login-err").textContent=res.msg||"로그인 실패"}}).catch(function(e){heritageLoader(false);$("#login-btn").disabled=false;$("#login-err").textContent="연결하지 못했어요 · "+netErr(e)});
+  var remember=$("#in-remember").checked;try{localStorage.setItem("gk_remember",remember?"1":"0")}catch(e){}
+  server("apiLogin",name,jumin,remember).then(function(res){$("#login-btn").disabled=false;if(res.ok){setToken(res.token);enterApp(res.user)}else{heritageLoader(false);$("#login-err").textContent=res.msg||"로그인 실패"}}).catch(function(e){heritageLoader(false);$("#login-btn").disabled=false;$("#login-err").textContent="연결하지 못했어요 · "+netErr(e)});
 }
 function fmtDate(){var d=new Date();var w=["일","월","화","수","목","금","토"][d.getDay()];return d.getFullYear()+"년 "+(d.getMonth()+1)+"월 "+d.getDate()+"일 ("+w+")"}
 function bizDaysLeft(){var d=new Date();var y=d.getFullYear(),m=d.getMonth(),last=new Date(y,m+1,0).getDate();var n=0;for(var day=d.getDate();day<=last;day++){var wd=new Date(y,m,day).getDay();if(wd!==0&&wd!==6)n++;}return n}
@@ -1545,6 +1554,7 @@ document.querySelectorAll(".scrim").forEach(function(s){s.addEventListener("clic
 $("#form-scrim").addEventListener("input",function(e){formDirty=true;var f=e.isTrusted&&e.target.closest&&e.target.closest(".field.scanned");if(f)f.classList.remove("scanned")});
 $("#scan-file").addEventListener("change",function(){scanCard(this.files&&this.files[0])});$("#form-scrim").addEventListener("change",function(){formDirty=true});
 
+try{if(localStorage.getItem("gk_remember")==="0")$("#in-remember").checked=false}catch(e){}
 (function(){var t=getToken();if(!t){return}var u0=peekUser();if(u0){enterApp(u0);return}   /* 저장된 목록이 있으면 바로 열고, 세션 확인은 목록을 새로 받을 때 함께 됨 */
   heritageLoader(true);server("apiMe",t).then(function(res){if(res.ok)enterApp(res.user);else heritageLoader(false)}).catch(function(){var u=peekUser();if(u)enterApp(u);else heritageLoader(false)})})();
 </script>
