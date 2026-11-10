@@ -727,11 +727,11 @@ function val(raw,keys){for(var i=0;i<keys.length;i++){for(var h in raw){if(h.rep
 function mapRow(raw){
   var ex=function(k){return raw[k]!==undefined&&raw[k]!==null?raw[k]:""};
   return {_row:raw._row,name:val(raw,["이름","성명","고객명"]),phone:String(val(raw,["연락처","전화","휴대폰"])||""),
-    addr:ex("주소")||val(raw,["자택주소"]),birth:val(raw,["생년월일","생일"]),product:val(raw,["가입상품","상품"]),
+    addr:ex("주소")||val(raw,["자택주소"]),birth:val(raw,["생년월일","생일"]),product:String(ex("상품명")||"").trim()||val(raw,["가입상품","상품"]),rawProduct:val(raw,["가입상품","상품"]),
     fee:val(raw,["월보험료","보험료"]),renew:val(raw,["상령일","갱신일","만기"]),status:normStatus(val(raw,["상태"])),
     family:val(raw,["가족관계","가족"]),last:val(raw,["최근접촉","최근"]),memo:ex("메모")||val(raw,["비고"]),
     workAddr:ex("직장주소"),company:ex("상호명")||val(raw,["상호","회사"]),position:ex("직급"),
-    rawPhone:String(ex("원본연락처")||""),entry:String(ex("정보입력")||""),cdate:String(ex("계약일자")||"").slice(0,10),insurer:String(ex("보험사")||""),alias:String(ex("연결이름")||""),rawBirth:String(ex("원본생년월일")||""),
+    rawPhone:String(ex("원본연락처")||""),entry:String(ex("정보입력")||""),cdate:String(ex("계약일자")||"").slice(0,10),insurer:String(ex("보험사")||""),policyNo:String(ex("증권번호")||""),payYears:String(ex("납입기간")||""),category:String(ex("생손보구분")||""),ctype:String(ex("계약자구분")||""),alias:String(ex("연결이름")||""),rawBirth:String(ex("원본생년월일")||""),
     lat:parseFloat(ex("위도"))||null,lng:parseFloat(ex("경도"))||null,
     workLat:parseFloat(ex("직장위도"))||null,workLng:parseFloat(ex("직장경도"))||null};
 }
@@ -961,7 +961,7 @@ function renderList(){
   document.querySelectorAll("#chips .chip").forEach(function(x){var f=x.dataset.f,n=f==="전체"?customers.length:countBy(f);x.innerHTML=f+'<span class="cnt">'+n+'</span>'});
   var arr=customers.filter(function(c){
     var okF=filter==="전체"||(filter==="미입력"?!c.filled:c.status===filter);
-    var hay=[c.name,c.addr,c.workAddr,c.company,c.memo,c.phone,String(c.phone||"").replace(/-/g,"")].concat(c.contracts.map(function(x){return x.product})).join(" ").toLowerCase();
+    var hay=[c.name,c.addr,c.workAddr,c.company,c.memo,c.phone,String(c.phone||"").replace(/-/g,"")].concat(c.contracts.map(function(x){return x.product+" "+(x.rawProduct||"")+" "+(x.insurer||"")})).join(" ").toLowerCase();
     return okF&&(!q||hay.indexOf(q)>-1)});
   var box=$("#list");
   if(!customers.length)box.innerHTML=net.custFail?loadFailHTML():'<div class="empty"><b>아직 등록된 고객이 없어요</b>아래 ‘추가’ 탭에서 첫 고객을 등록해 보세요.</div>';
@@ -1089,8 +1089,8 @@ function openDetail(id){
   var st=stLine(g);
   var contractsHTML=g.contracts.slice().sort(function(a,b){return String(b.cdate||"").localeCompare(String(a.cdate||""))}).map(function(c){
     return '<div class="contract"><div class="ct"><div><div class="cp">'+esc(c.product||"상품 미등록")+'</div>'+
-      '<div class="cf num">월 '+won(c.fee)+(c.insurer?' · '+esc(c.insurer):'')+'</div>'+
-      '<div class="cd num'+(c.cdate?'':' none')+'">'+(c.cdate?'계약일 '+esc(fmtCDate(c.cdate)):'계약일 정보 없음')+'</div></div>'+
+      '<div class="cf num">월 '+won(c.fee)+[c.insurer,c.category].filter(Boolean).map(function(x){return ' · '+esc(x)}).join("")+'</div>'+
+      '<div class="cd num'+(c.cdate?'':' none')+'">'+[c.cdate?'계약일 '+esc(fmtCDate(c.cdate)):'계약일 정보 없음',c.payYears?esc(payTxt(c.payYears)):'',c.policyNo?'증권 '+esc(c.policyNo):''].filter(Boolean).join(' · ')+'</div></div>'+
       '<button type="button" class="edit" onclick="editContract('+c._row+')" aria-label="'+esc((c.product||"상품")+" 계약 수정")+'">수정</button></div>'+'</div>';
   }).join("");
   var lastTxt=g.last?(function(){var dd=-daysTo(g.last);return esc(g.last)+' ('+(dd<=0?"오늘":dd+"일 전")+')'})():"";
@@ -1210,7 +1210,7 @@ function renderImport(total){
   box.innerHTML='<datalist id="im-names">'+names.map(function(n){return '<option value="'+esc(n)+'">'}).join("")+'</datalist>'+
     items.map(function(c,i){var nm=c.contractor||"";
       return '<div class="im-row"><input type="checkbox" class="im-ck" id="im-'+i+'" data-i="'+i+'"'+(nm?' checked':'')+' aria-label="'+esc((c.product||"계약")+" 불러오기")+'">'+
-        '<div class="im-main"><label for="im-'+i+'" class="im-prod">'+esc(c.product||"상품 이름 없음")+(c.owner?'<span class="im-tag">'+esc(c.owner)+' 님과 공동</span>':'')+'</label>'+
+        '<div class="im-main"><label for="im-'+i+'" class="im-prod">'+esc(c.productRead||c.product||"상품 이름 없음")+(c.owner?'<span class="im-tag">'+esc(c.owner)+' 님과 공동</span>':'')+'</label>'+
         '<div class="im-meta num">계약일 '+esc(fmtCDate(c.date)||"-")+' · '+esc(c.company||"보험사 없음")+' · 월 '+won(c.premium)+'</div>'+
         '<div class="im-name"><label for="im-n-'+i+'">고객</label><input id="im-n-'+i+'" class="im-nm" data-i="'+i+'" list="im-names" value="'+esc(nm)+'" placeholder="'+(nm?'':'계약자 이름 없음 · 이름 입력')+'" autocomplete="off"></div></div></div>'}).join("")+
     '<div class="im-foot"><button type="button" id="im-go" onclick="doImport()"></button></div>';
@@ -1562,7 +1562,7 @@ function openContractForm(person,contract){formDirty=false;resetFormNotes();
   formMode=contract?"contract-edit":"contract-add";formPerson=person;
   $("#form-title").textContent=contract?("계약 수정 · "+person.name):(person.name+" · 계약 추가");
   $("#f-row").value=contract?contract._row:"";
-  $("#f-product").value=contract?contract.product:"";$("#f-fee").value=contract?fmtFee(contract.fee):"";
+  $("#f-product").value=contract?contract.product:"";$("#f-product").dataset.orig=contract?contract.product:"";$("#f-fee").value=contract?fmtFee(contract.fee):"";
   var fromHp=!!(contract&&contract._row>1),cd=contract&&contract.cdate?String(contract.cdate).slice(0,10):"";
   $("#f-cdate").value=cd;$("#f-cdate").hidden=fromHp;$("#f-cdate-ro").hidden=!fromHp;
   $("#f-cdate-ro").textContent=cd?fmtCDate(cd)+" · 헤리티지 프로 계약일":"헤리티지 프로에 계약일이 없어요";
@@ -1570,6 +1570,7 @@ function openContractForm(person,contract){formDirty=false;resetFormNotes();
   setContractEditOnly(!!contract);
   showGroups(false,true);$("#del-btn").style.display=(contract&&contract._row)?"block":"none";openSheet("#form-scrim");
 }
+function payTxt(v){v=String(v||"").trim();return /^\d+$/.test(v)?v+"년납":(/년$/.test(v)?v+"납":v)}
 function fmtCDate(s){var m=String(s||"").match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/);return m?m[1]+"."+("0"+m[2]).slice(-2)+"."+("0"+m[3]).slice(-2):String(s||"")}
 function fmtFee(v){var d=String(v==null?"":v).replace(/[^0-9]/g,"");return d?Number(d).toLocaleString("ko-KR"):""}
 function syncSangryeong(){var b=$("#f-birth").value;$("#f-renew").value=b?clientSangryeong(b):""}
@@ -1624,6 +1625,7 @@ function saveForm(){
   }
   obj["가입상품"]=$("#f-product").value.trim();obj["월보험료"]=$("#f-fee").value.replace(/[^0-9]/g,"");obj["상태"]=$("#f-status").value;
   if(!(row&&+row>1))obj["계약일자"]=$("#f-cdate").value||"";
+  else if(obj["가입상품"]===$("#f-product").dataset.orig)delete obj["가입상품"];   // 헤리티지 프로 계약: 상품명을 안 고쳤으면 원래 값 그대로
   if(row){obj._row=+row;}else if(formMode==="new"){obj["최근접촉일"]=($("#f-lastcontact").value||todayStr());}
   showLoader(true);
   server("apiSaveCustomer",getToken(),obj).then(function(res){
