@@ -437,6 +437,8 @@
   /* 계약일자 */
   .contract .cd{color:var(--muted);font-size:14px;margin-top:2px}
   .contract .cd.none{color:var(--line-2)}
+  .contract .cneed{display:inline-block;margin-top:6px;font-size:13px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--caution-bg);color:var(--caution)}
+  .field .fnote{margin-top:6px;font-size:14px;line-height:1.5;color:var(--caution)}
   .field .ro-note{min-height:48px;display:flex;align-items:center;padding:0 14px;border-radius:var(--r-btn);background:var(--surface-2);color:var(--ink-2);font-size:15px}
   /* 빠진 계약 불러오기 */
   .pull-btn{flex:0 0 auto;min-height:44px;padding:0 14px;border:none;border-radius:var(--r-btn);background:var(--brand-tint);color:var(--brand);font:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
@@ -607,7 +609,7 @@
     </div>
     <div id="grp-contract">
       <h3 class="grp-t" style="margin:22px 0 0;font-size:16px;color:var(--ink)">계약 정보</h3>
-      <div class="field"><label for="f-product">가입상품</label><input id="f-product" placeholder="실손 / 종신 …"></div>
+      <div class="field"><label for="f-product">상품명</label><input id="f-product" placeholder="실손 / 종신 …"><div class="fnote" id="f-product-note" hidden></div></div>
       <div class="field"><label for="f-fee">월 보험료</label><input id="f-fee" placeholder="예: 120,000" inputmode="numeric"></div>
       <div class="field" id="fld-cdate"><label for="f-cdate">계약일자</label><input id="f-cdate" type="date"><div class="ro-note" id="f-cdate-ro" hidden></div></div>
       <div class="field" id="fld-status"><label for="f-status">고객 구분 <span class="hint">· 상령임박·장기미접촉은 날짜로 자동 표시</span></label>
@@ -731,7 +733,7 @@ function mapRow(raw){
     fee:val(raw,["월보험료","보험료"]),renew:val(raw,["상령일","갱신일","만기"]),status:normStatus(val(raw,["상태"])),
     family:val(raw,["가족관계","가족"]),last:val(raw,["최근접촉","최근"]),memo:ex("메모")||val(raw,["비고"]),
     workAddr:ex("직장주소"),company:ex("상호명")||val(raw,["상호","회사"]),position:ex("직급"),
-    rawPhone:String(ex("원본연락처")||""),entry:String(ex("정보입력")||""),cdate:String(ex("계약일자")||"").slice(0,10),insurer:String(ex("보험사")||""),policyNo:String(ex("증권번호")||""),payYears:String(ex("납입기간")||""),category:String(ex("생손보구분")||""),ctype:String(ex("계약자구분")||""),alias:String(ex("연결이름")||""),rawBirth:String(ex("원본생년월일")||""),
+    rawPhone:String(ex("원본연락처")||""),entry:String(ex("정보입력")||""),cdate:String(ex("계약일자")||"").slice(0,10),insurer:String(ex("보험사")||""),policyNo:String(ex("증권번호")||""),pkey:String(ex("상품키")||""),needName:ex("상품명확인")==="Y",payYears:String(ex("납입기간")||""),category:String(ex("생손보구분")||""),ctype:String(ex("계약자구분")||""),alias:String(ex("연결이름")||""),rawBirth:String(ex("원본생년월일")||""),
     lat:parseFloat(ex("위도"))||null,lng:parseFloat(ex("경도"))||null,
     workLat:parseFloat(ex("직장위도"))||null,workLng:parseFloat(ex("직장경도"))||null};
 }
@@ -1088,7 +1090,7 @@ function openDetail(id){
   var d=daysTo(g.renew);var note=d!==null?(d<0?(-d)+"일 지남":"D-"+d):"";
   var st=stLine(g);
   var contractsHTML=g.contracts.slice().sort(function(a,b){return String(b.cdate||"").localeCompare(String(a.cdate||""))}).map(function(c){
-    return '<div class="contract"><div class="ct"><div><div class="cp">'+esc(c.product||"상품 미등록")+'</div>'+
+    return '<div class="contract"><div class="ct"><div><div class="cp">'+esc(c.product||"상품 미등록")+'</div>'+(c.needName?'<span class="cneed">정확한 상품명 없음 · 수정에서 입력</span>':'')+
       '<div class="cf num">월 '+won(c.fee)+[c.insurer,c.category].filter(Boolean).map(function(x){return ' · '+esc(x)}).join("")+'</div>'+
       '<div class="cd num'+(c.cdate?'':' none')+'">'+[c.cdate?'계약일 '+esc(fmtCDate(c.cdate)):'계약일 정보 없음',c.payYears?esc(payTxt(c.payYears)):'',c.policyNo?'증권 '+esc(c.policyNo):''].filter(Boolean).join(' · ')+'</div></div>'+
       '<button type="button" class="edit" onclick="editContract('+c._row+')" aria-label="'+esc((c.product||"상품")+" 계약 수정")+'">수정</button></div>'+'</div>';
@@ -1562,7 +1564,10 @@ function openContractForm(person,contract){formDirty=false;resetFormNotes();
   formMode=contract?"contract-edit":"contract-add";formPerson=person;
   $("#form-title").textContent=contract?("계약 수정 · "+person.name):(person.name+" · 계약 추가");
   $("#f-row").value=contract?contract._row:"";
-  $("#f-product").value=contract?contract.product:"";$("#f-product").dataset.orig=contract?contract.product:"";$("#f-fee").value=contract?fmtFee(contract.fee):"";
+  var pv=contract?(contract.needName?"":contract.product):"";
+  $("#f-product").value=pv;$("#f-product").dataset.orig=pv;$("#f-product").dataset.pkey=contract&&contract._row>1?(contract.pkey||""):"";
+  $("#f-product-note").hidden=!(contract&&contract.needName);
+  $("#f-product-note").textContent=contract&&contract.needName?"헤리티지 프로에 수수료 구분 이름(‘"+contract.product+"’)만 있어요. 증권에 적힌 상품명을 적어 주시면 계속 그 이름으로 보여요.":"";$("#f-fee").value=contract?fmtFee(contract.fee):"";
   var fromHp=!!(contract&&contract._row>1),cd=contract&&contract.cdate?String(contract.cdate).slice(0,10):"";
   $("#f-cdate").value=cd;$("#f-cdate").hidden=fromHp;$("#f-cdate-ro").hidden=!fromHp;
   $("#f-cdate-ro").textContent=cd?fmtCDate(cd)+" · 헤리티지 프로 계약일":"헤리티지 프로에 계약일이 없어요";
@@ -1625,7 +1630,9 @@ function saveForm(){
   }
   obj["가입상품"]=$("#f-product").value.trim();obj["월보험료"]=$("#f-fee").value.replace(/[^0-9]/g,"");obj["상태"]=$("#f-status").value;
   if(!(row&&+row>1))obj["계약일자"]=$("#f-cdate").value||"";
-  else if(obj["가입상품"]===$("#f-product").dataset.orig)delete obj["가입상품"];   // 헤리티지 프로 계약: 상품명을 안 고쳤으면 원래 값 그대로
+  else{var _pv=obj["가입상품"],_pk=$("#f-product").dataset.pkey||"";               // 헤리티지 프로 계약
+    if(_pv===$("#f-product").dataset.orig)delete obj["가입상품"];                     // 안 고쳤으면 시트 값 그대로
+    else if(_pk){obj["상품명"]=_pv;obj["상품키"]=_pk;delete obj["가입상품"]}}          // 고친 상품명은 앱에 따로 저장 (헤리티지 프로가 다시 써도 유지)
   if(row){obj._row=+row;}else if(formMode==="new"){obj["최근접촉일"]=($("#f-lastcontact").value||todayStr());}
   showLoader(true);
   server("apiSaveCustomer",getToken(),obj).then(function(res){
