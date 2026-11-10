@@ -1092,7 +1092,8 @@ function openDetail(id){
   var contractsHTML=g.contracts.slice().sort(function(a,b){return String(b.cdate||"").localeCompare(String(a.cdate||""))}).map(function(c){
     return '<div class="contract"><div class="ct"><div><div class="cp">'+esc(c.product||"상품 미등록")+'</div>'+(c.needName?'<span class="cneed">정확한 상품명 없음 · 수정에서 입력</span>':'')+
       '<div class="cf num">월 '+won(c.fee)+[c.insurer,c.category].filter(Boolean).map(function(x){return ' · '+esc(x)}).join("")+'</div>'+
-      '<div class="cd num'+(c.cdate?'':' none')+'">'+[c.cdate?'계약일 '+esc(fmtCDate(c.cdate)):'계약일 정보 없음',c.payYears?esc(payTxt(c.payYears)):'',c.policyNo?'증권 '+esc(c.policyNo):''].filter(Boolean).join(' · ')+'</div></div>'+
+      '<div class="cd num'+(c.cdate?'':' none')+'">'+[c.cdate?'계약일 '+esc(fmtCDate(c.cdate)):'계약일 정보 없음',c.payYears?esc(payTxt(c.payYears)):''].filter(Boolean).join(' · ')+'</div>'+
+      (c.policyNo?'<div class="cd num">증권번호 '+esc(c.policyNo)+'</div>':'')+'</div>'+
       '<button type="button" class="edit" onclick="editContract('+c._row+')" aria-label="'+esc((c.product||"상품")+" 계약 수정")+'">수정</button></div>'+'</div>';
   }).join("");
   var lastTxt=g.last?(function(){var dd=-daysTo(g.last);return esc(g.last)+' ('+(dd<=0?"오늘":dd+"일 전")+')'})():"";
